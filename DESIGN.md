@@ -229,6 +229,9 @@ Narrow screens retain the labeled item layout rather than a sticky table header.
 Related links uses the shared navy section heading and a sticky-menu shortcut. Group links by their actual relation type,
 with link text, supplied update dates, and comments. Unresolved artifact links clearly point back to Azure DevOps.
 
+The current user's name uses amber behind navy text in identity fields and comment authors.
+Structured mentions receive the same highlight only when their identity ID matches the current user's source profile.
+
 ## Elevation & Depth
 
 The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel.

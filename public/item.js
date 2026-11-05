@@ -7,6 +7,7 @@ const TOUCH_LABELS = {
   created: 'Created by me',
   edited: 'Edited by me',
   commented: 'Commented by me',
+  mentioned: 'Mentioned me in a comment',
 };
 
 function fmtDate(iso) {
@@ -85,6 +86,9 @@ async function load() {
     lbl.textContent = label;
     const val = document.createElement('span');
     val.textContent = value == null || value === '' ? '–' : value;
+    if (['Assigned to', 'Created by', 'Changed by'].includes(label) && item.my_display_name && value === item.my_display_name) {
+      val.className = 'my-name';
+    }
     div.append(lbl, val);
     detail.appendChild(div);
   }
@@ -211,6 +215,7 @@ async function loadHistory(id) {
       meta.className = 'history-meta';
       const who = document.createElement('strong');
       who.textContent = r.by || 'Unknown';
+      if (data.myDisplayName && r.by === data.myDisplayName) who.className = 'my-name';
       const when = document.createElement('span');
       when.className = 'muted';
       when.textContent = ` · ${fmtDate(r.date)} · rev ${r.rev}`;

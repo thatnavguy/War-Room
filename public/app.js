@@ -192,7 +192,14 @@ async function loadItems() {
         state.textContent = cell.value || 'Unknown';
         td.appendChild(state);
       } else {
-        td.textContent = cell.value == null || cell.value === '' ? '–' : cell.value;
+        if (cell.label === 'Assigned to' && item.my_display_name && cell.value === item.my_display_name) {
+          const name = document.createElement('span');
+          name.className = 'my-name';
+          name.textContent = cell.value;
+          td.appendChild(name);
+        } else {
+          td.textContent = cell.value == null || cell.value === '' ? '–' : cell.value;
+        }
         if (cell.title) td.title = cell.title;
       }
       tr.appendChild(td);

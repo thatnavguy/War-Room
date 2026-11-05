@@ -3,6 +3,7 @@
 const config = require('./config');
 const ado = require('./ado');
 const db = require('./db');
+const { latestMention } = require('./mentions');
 
 let running = false;
 
@@ -64,10 +65,13 @@ async function runSync() {
       id: identity.id ? String(identity.id).toLowerCase() : '',
       displayName: normIdentity(identity.displayName),
     };
+    if (!me.id) throw new Error('Azure DevOps did not return your identity ID. Check the connection in Settings before syncing mentions.');
     db.setSyncState('meDisplayName', identity.displayName || '');
+    db.setSyncState('meId', me.id);
 
     const lastSync = db.getSyncState('lastSync');
-    const sinceIso = lastSync
+    const mentionsBackfill = db.getSyncState('mentionsVersion') !== `1:${me.id}`;
+    const sinceIso = lastSync && !mentionsBackfill
       ? lastSync
       : new Date(Date.now() - config.lookbackDays * 86400000).toISOString();
     // WIQL date-precision queries reject time components; date-only may rescan
@@ -149,6 +153,11 @@ async function runSync() {
             db.saveTouch(localId, 'commented', lastComment);
             stats.touches++;
           }
+          const mentionedAt = latestMention(updates, me.id);
+          if (mentionedAt) {
+            db.saveTouch(localId, 'mentioned', mentionedAt);
+            stats.touches++;
+          }
           stats.deepScanned++;
         } catch (err) {
           stats.errors.push(`item ${id}: ${err.message}`);
@@ -157,8 +166,11 @@ async function runSync() {
     }
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-    db.setSyncState('lastSync', now);
-    db.setSyncState('priorityVersion', '1');
+    if (stats.errors.length === 0) {
+      db.setSyncState('lastSync', now);
+      db.setSyncState('priorityVersion', '1');
+      db.setSyncState('mentionsVersion', `1:${me.id}`);
+    }
     stats.completedAt = now;
     return stats;
   } finally {

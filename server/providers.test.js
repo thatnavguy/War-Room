@@ -72,6 +72,8 @@ test('legacy Azure DevOps items retain local IDs, touches and sync state', (t) =
   assert.equal(store.getItem(109642).external_id, '109642');
   assert.equal(store.getItem(109642).description, '<p>Original description</p>');
   assert.equal(store.getItem(109642).touches[0].touch_type, 'commented');
+  store.saveTouch(109642, 'mentioned', '2026-02-01');
+  assert.equal(store.getItem(109642).touches.length, 2);
   assert.equal(store.getSyncState('lastSync', 'azure-devops', scope), '2026-01-01');
   assert.equal(store.saveItem({ id: 109642, source_scope: scope, title: 'Updated' }), 109642);
   store.close();
@@ -81,6 +83,7 @@ test('legacy Azure DevOps items retain local IDs, touches and sync state', (t) =
     fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
   });
   assert.equal(store.getItem(109642).title, 'Updated');
+  assert.ok(store.getItem(109642).touches.some((touch) => touch.touch_type === 'mentioned'));
 });
 
 test('only implemented providers are advertised and unsupported providers fail explicitly', () => {
@@ -107,6 +110,29 @@ test('project filter lists only projects with recorded touches, including closed
   const empty = save('5', '');
   for (const id of [touched, closed, duplicate, empty]) store.saveTouch(id, 'commented', '2026-01-01');
   assert.deepEqual(store.getFilterValues().projects, ['Previously touched', 'Touched']);
+});
+
+test('iteration filter lists only iterations with touched or mentioned items, including closed items', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const save = (externalId, iteration, isClosed = false) => store.saveItem({
+    provider: 'azure-devops', source_scope: 'https://dev.azure.com/example',
+    external_id: externalId, iteration_path: iteration, is_closed: isClosed,
+  });
+  save('1', 'Untouched');
+  const touched = save('2', 'Touched');
+  const closed = save('3', 'Previously touched', true);
+  const duplicate = save('4', 'Touched');
+  const empty = save('5', '');
+  const missing = save('6', null);
+  const mentioned = save('7', 'Mentioned');
+  for (const id of [touched, closed, duplicate, empty, missing]) store.saveTouch(id, 'commented', '2026-01-01');
+  store.saveTouch(mentioned, 'mentioned', '2026-01-01');
+  assert.deepEqual(store.getFilterValues().iterations, ['Mentioned', 'Previously touched', 'Touched']);
 });
 
 test('history uses the external ID and refuses a different source scope', async (t) => {

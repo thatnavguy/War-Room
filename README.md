@@ -1,7 +1,7 @@
 # Mission Hall
 
 A lightweight, local-only web app that tracks Azure DevOps work items you have touched:
-currently assigned, previously assigned, created, edited, or commented.
+currently assigned, previously assigned, created, edited, commented, or mentioned in a comment.
 
 ## Setup
 
@@ -30,7 +30,7 @@ The setup page writes to the same `.env` file.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
 - Filter by project, type, state, iteration, priority level, and date range.
-  The project filter only lists projects with items you have touched, including previously touched closed items.
+  Project and iteration filters only list values from items you have touched or been mentioned on, including closed items.
   Search and filters stay selected when you return from a work item or reload the page in the same tab.
   Use **Clear filters** to reset them.
 - Priority level appears in item details, the work-item list, and its own dashboard filter.
@@ -38,7 +38,12 @@ The setup page writes to the same `.env` file.
   Sync once after upgrading to fetch priorities for previously tracked items. Missing priorities display as a dash.
 - On desktop, the navy table header stays visible as you scroll through the work-item list.
 - Open an item to see exactly why it's tracked (assigned / created / edited /
-  commented) and jump to it in Azure DevOps.
+  commented / mentioned) and jump to it in Azure DevOps.
+- Actual **@mentions of your identity** bring open items into My work after syncing.
+  Plain text containing your name does not count as a mention.
+  The first sync after this update scans comments on items changed within the configured lookback period.
+  If a scan fails, the sync checkpoint stays unchanged so the next sync retries.
+  Your name uses an amber highlight in assignment fields, comment authors, and structured @mentions.
 - Screenshots in descriptions and comments appear inline. The local server loads
   them with your saved Azure DevOps token; the token is never sent to the browser.
   PNG, JPEG, GIF, WebP, and BMP images up to 20 MB are supported.

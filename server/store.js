@@ -53,6 +53,21 @@ function createStore(filename, legacyScope = '') {
   `);
   
   db.transaction(() => {
+    const touchSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'touches'").get().sql;
+    if (!touchSchema.includes("'mentioned'")) {
+      db.exec(`
+        ALTER TABLE touches RENAME TO touches_before_mentions;
+        CREATE TABLE touches (
+          work_item_id INTEGER NOT NULL,
+          touch_type TEXT NOT NULL CHECK (touch_type IN ('assigned','created','edited','commented','mentioned')),
+          touched_at TEXT,
+          PRIMARY KEY (work_item_id, touch_type)
+        );
+        INSERT INTO touches SELECT work_item_id, touch_type, touched_at FROM touches_before_mentions;
+        DROP TABLE touches_before_mentions;
+        CREATE INDEX idx_touches_item ON touches(work_item_id);
+      `);
+    }
     const columns = new Set(db.prepare('PRAGMA table_info(work_items)').all().map((c) => c.name));
     for (const col of ['description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level']) {
       if (!columns.has(col)) db.exec(`ALTER TABLE work_items ADD COLUMN ${col} TEXT`);
@@ -293,8 +308,13 @@ function createStore(filename, legacyScope = '') {
           AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
         ORDER BY w.priority_level
       `).all().map((row) => row.v),
-      iterations: pick('iteration_path'),
-      touches: ['assigned', 'created', 'edited', 'commented'],
+      iterations: db.prepare(`
+        SELECT DISTINCT w.iteration_path AS v FROM work_items w
+        WHERE w.iteration_path IS NOT NULL AND w.iteration_path != ''
+          AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
+        ORDER BY w.iteration_path
+      `).all().map((row) => row.v),
+      touches: ['assigned', 'created', 'edited', 'commented', 'mentioned'],
     };
   }
   

@@ -89,10 +89,10 @@ router.get('/items/:id', (req, res) => {
   const { sanitizeRichText } = getProvider(item.provider);
   res.json({
     ...describeItem(item),
-    description: sanitizeRichText(item.description),
-    acceptance_criteria: sanitizeRichText(item.acceptance_criteria),
-    repro_steps: sanitizeRichText(item.repro_steps),
-    history: sanitizeRichText(item.history),
+    description: sanitizeRichText(item.description, item),
+    acceptance_criteria: sanitizeRichText(item.acceptance_criteria, item),
+    repro_steps: sanitizeRichText(item.repro_steps, item),
+    history: sanitizeRichText(item.history, item),
     attachments: item.attachments ? JSON.parse(item.attachments) : [],
   });
 });
@@ -102,7 +102,7 @@ router.get('/items/:id/history', async (req, res) => {
   const item = db.getItem(id);
   if (!item) return res.status(404).json({ error: 'Not found' });
   try {
-    res.json({ revisions: await getProvider(item.provider).getHistory(item) });
+    res.json({ revisions: await getProvider(item.provider).getHistory(item), myDisplayName: describeItem(item).my_display_name });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

@@ -1,6 +1,7 @@
 'use strict';
 
 const { imageAttachmentUrl } = require('./ado');
+const { mentionId } = require('./mentions');
 
 // Minimal HTML allowlist sanitizer for ADO rich-text fields.
 // Keeps basic formatting + links, drops scripts, handlers, iframes, styles.
@@ -13,7 +14,7 @@ const ALLOWED_TAGS = new Set([
 
 const ALLOWED_ATTRS = { a: new Set(['href']) };
 
-function sanitizeHtml(html) {
+function sanitizeHtml(html, identityId = '') {
   if (!html) return '';
   let out = String(html);
 
@@ -43,7 +44,8 @@ function sanitizeHtml(html) {
       const href = hrefMatch ? (hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3] ?? '') : '';
       if (/^\s*javascript:/i.test(href)) return '<a>';
       const safe = href.replace(/"/g, '&quot;');
-      return `<a href="${safe}" target="_blank" rel="noopener noreferrer">`;
+      const ownMention = identityId && mentionId(attrs) === identityId.toLowerCase();
+      return `<a href="${safe}"${ownMention ? ' class="my-name"' : ''} target="_blank" rel="noopener noreferrer">`;
     }
     return `<${t}>`;
   });
@@ -102,12 +104,12 @@ function fieldValueText(v) {
 }
 
 // updates: raw array from ADO updates endpoint
-function summarizeUpdates(updates) {
+function summarizeUpdates(updates, identityId = '') {
   const result = [];
   for (const u of updates || []) {
     const fields = u.fields || {};
     const comment = fields['System.History'] && fields['System.History'].newValue != null
-      ? sanitizeHtml(fields['System.History'].newValue)
+      ? sanitizeHtml(fields['System.History'].newValue, identityId)
       : null;
 
     const changes = [];

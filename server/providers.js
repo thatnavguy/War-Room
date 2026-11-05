@@ -21,13 +21,17 @@ const azureDevOps = {
   syncStatus: () => require('./azure-sync').syncStatus(),
   async getHistory(item) {
     requireAzureScope(item);
-    return summarizeUpdates(await ado.getUpdates(item.external_id));
+    const meId = require('./db').getSyncState('meId', 'azure-devops', item.source_scope);
+    return summarizeUpdates(await ado.getUpdates(item.external_id), meId || '');
   },
   async getRelatedLinks(item) {
     requireAzureScope(item);
     return mapRelatedLinks(await ado.getRelations(item.external_id), item);
   },
-  sanitizeRichText: sanitizeHtml,
+  sanitizeRichText(html, item) {
+    const meId = item ? require('./db').getSyncState('meId', 'azure-devops', item.source_scope) : '';
+    return sanitizeHtml(html, meId || '');
+  },
 };
 
 const providers = new Map([[azureDevOps.id, azureDevOps]]);
@@ -45,7 +49,11 @@ function listProviders() {
 }
 
 function describeItem(item) {
-  return { ...item, provider_label: getProvider(item.provider).label };
+  return {
+    ...item,
+    provider_label: getProvider(item.provider).label,
+    my_display_name: require('./db').getSyncState('meDisplayName', item.provider, item.source_scope) || '',
+  };
 }
 
 module.exports = { getProvider, listProviders, describeItem };

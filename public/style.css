@@ -393,6 +393,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .rich-text pre { overflow-x: auto; padding: 12px; border: 1px solid var(--line); background: var(--code-surface); }
 .rich-text img { display: block; max-width: 100%; height: auto; margin: 12px 0; }
 .image-error { color: var(--error); }
+.my-name, .rich-text a.my-name { padding: 1px 4px; border-radius: 3px; background: var(--signal-amber); color: var(--ink); font-weight: 650; box-decoration-break: clone; }
 .attachments { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
 .attachments a { color: var(--accent); }
 .related-links { display: grid; gap: 20px; }
