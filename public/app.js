@@ -6,6 +6,7 @@ const searchInput = $('#search');
 const filterEls = {
   provider: $('#f-provider'),
   priority: $('#f-priority'),
+  label: $('#f-label'),
   project: $('#f-project'),
   type: $('#f-type'),
   state: $('#f-state'),
@@ -102,6 +103,7 @@ async function loadFilters() {
   fill(filterEls.state, f.states, 'All states');
   fill(filterEls.iteration, f.iterations, 'All iterations');
   fill(filterEls.priority, f.priorities, 'All priority levels');
+  fill(filterEls.label, f.labels, 'All labels');
   filterEls.provider.replaceChildren(new Option('All sources', ''));
   for (const provider of providers) {
     filterEls.provider.appendChild(new Option(provider.label, provider.id));
@@ -186,6 +188,19 @@ async function loadItems() {
         a.href = `/item.html?id=${item.id}`;
         a.textContent = cell.value || 'Untitled work item';
         td.appendChild(a);
+        const labels = String(item.tags || '').split(';').map((tag) => tag.trim()).filter(Boolean);
+        if (labels.length) {
+          const group = document.createElement('div');
+          group.className = 'item-labels';
+          group.setAttribute('aria-label', 'Labels');
+          for (const label of labels) {
+            const badge = document.createElement('span');
+            badge.className = 'item-label';
+            badge.textContent = label;
+            group.appendChild(badge);
+          }
+          td.appendChild(group);
+        }
       } else if (cell.kind === 'state') {
         const state = document.createElement('span');
         state.className = `state-tag${tr.classList.contains('stale-row') ? ' state-tag-stale' : ''}`;

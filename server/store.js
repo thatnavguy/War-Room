@@ -8,6 +8,9 @@ const config = require('./config');
 function createStore(filename, legacyScope = '') {
   fs.mkdirSync(path.dirname(filename), { recursive: true });
   const db = new Database(filename);
+  const splitLabels = (tags) => String(tags || '').split(';').map((tag) => tag.trim()).filter(Boolean);
+  db.function('has_label', { deterministic: true }, (tags, label) =>
+    Number(splitLabels(tags).some((tag) => tag.toLowerCase() === label.toLowerCase())));
   
   db.pragma('journal_mode = WAL');
   db.pragma('synchronous = NORMAL');
@@ -196,6 +199,7 @@ function createStore(filename, legacyScope = '') {
     if (filters.project) { where.push('w.project = @project'); params.project = filters.project; }
     if (filters.provider) { where.push('w.provider = @provider'); params.provider = filters.provider; }
     if (filters.priority) { where.push('w.priority_level = @priority'); params.priority = filters.priority; }
+    if (filters.label) { where.push('has_label(w.tags, @label) = 1'); params.label = filters.label; }
     if (filters.type) { where.push('w.type = @type'); params.type = filters.type; }
     if (filters.state) { where.push('w.state = @state'); params.state = filters.state; }
     if (filters.iteration) { where.push('w.iteration_path = @iteration'); params.iteration = filters.iteration; }
@@ -302,6 +306,10 @@ function createStore(filename, legacyScope = '') {
       types: pick('type'),
       states: db.prepare('SELECT DISTINCT state AS v FROM work_items WHERE is_closed = 0 ORDER BY state').all().map((r) => r.v),
       providers: pick('provider'),
+      labels: [...new Set(db.prepare(`
+        SELECT w.tags FROM work_items w WHERE w.tags IS NOT NULL
+          AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
+      `).all().flatMap((row) => splitLabels(row.tags)))].sort((a, b) => a.localeCompare(b)),
       priorities: db.prepare(`
         SELECT DISTINCT w.priority_level AS v FROM work_items w
         WHERE w.priority_level IS NOT NULL AND w.priority_level != ''

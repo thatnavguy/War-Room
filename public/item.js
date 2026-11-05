@@ -75,7 +75,7 @@ async function load() {
     ['Changed', fmtDate(item.changed_date)],
     ['Iteration', item.iteration_path],
     ['Area', item.area_path],
-    ['Tags', item.tags],
+    ['Labels', item.tags],
   ];
 
   const detail = $('#detail');

@@ -232,6 +232,9 @@ with link text, supplied update dates, and comments. Unresolved artifact links c
 The current user's name uses amber behind navy text in identity fields and comment authors.
 Structured mentions receive the same highlight only when their identity ID matches the current user's source profile.
 
+Labels appear as small neutral badges beneath list titles. The Label filter uses actual tags from tracked work,
+without assigning invented colors or meanings to individual labels.
+
 ## Elevation & Depth
 
 The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel.

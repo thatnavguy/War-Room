@@ -30,6 +30,8 @@ The setup page writes to the same `.env` file.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
 - Filter by project, type, state, iteration, priority level, and date range.
+- Labels (Azure DevOps tags) appear beneath titles in the list and in item details.
+  The **Label** filter lists labels from touched or mentioned work and matches a whole label, not part of its name.
   Project and iteration filters only list values from items you have touched or been mentioned on, including closed items.
   Search and filters stay selected when you return from a work item or reload the page in the same tab.
   Use **Clear filters** to reset them.

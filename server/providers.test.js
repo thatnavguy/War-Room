@@ -11,6 +11,26 @@ const { getProvider, listProviders } = require('./providers');
 const config = require('./config');
 const ado = require('./ado');
 
+test('label options split tags from tracked work and filters match whole labels', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const base = { provider: 'azure-devops', source_scope: 'https://dev.azure.com/example' };
+  const first = store.saveItem({ ...base, external_id: '1', tags: ' Sandbox-Dev ; Warehouse ; ; ' });
+  const second = store.saveItem({ ...base, external_id: '2', tags: 'Sandbox-Dev-Old; Warehouse' });
+  const third = store.saveItem({ ...base, external_id: '3', tags: '50%_done' });
+  store.saveItem({ ...base, external_id: '4', tags: 'Untouched' });
+  for (const id of [first, second, third]) store.saveTouch(id, 'mentioned', '2026-01-01');
+  assert.deepEqual(store.getFilterValues().labels, ['50%_done', 'Sandbox-Dev', 'Sandbox-Dev-Old', 'Warehouse']);
+  assert.equal(store.queryItems({ label: 'Sandbox-Dev' }).total, 1);
+  assert.equal(store.queryItems({ label: 'sandbox-dev' }).total, 1);
+  assert.equal(store.queryItems({ label: 'Sandbox' }).total, 0);
+  assert.equal(store.queryItems({ label: '50%_done' }).total, 1);
+});
+
 function fixture() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mission-hall-test-'));
   return path.join(directory, 'nested', 'items.db');
