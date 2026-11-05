@@ -111,15 +111,32 @@ test('project filter lists only projects with recorded touches, including closed
 
 test('history uses the external ID and refuses a different source scope', async (t) => {
   const oldScope = config.orgUrl;
+  const oldPat = config.pat;
   const oldUpdates = ado.getUpdates;
-  t.after(() => { config.orgUrl = oldScope; ado.getUpdates = oldUpdates; });
+  t.after(() => { config.orgUrl = oldScope; config.pat = oldPat; ado.getUpdates = oldUpdates; });
   config.orgUrl = 'https://dev.azure.com/example';
+  config.pat = 'test-token';
   let requestedId;
   ado.getUpdates = async (id) => { requestedId = id; return []; };
   const provider = getProvider('azure-devops');
   assert.deepEqual(await provider.getHistory({ id: 1, external_id: '109642', source_scope: config.orgUrl }), []);
   assert.equal(requestedId, '109642');
   await assert.rejects(provider.getHistory({ external_id: '109642', source_scope: 'https://dev.azure.com/other' }), /different.*organization/);
+});
+
+test('related links use the provider external ID and reject a different organization', async (t) => {
+  const oldScope = config.orgUrl;
+  const oldPat = config.pat;
+  const oldRelations = ado.getRelations;
+  t.after(() => { config.orgUrl = oldScope; config.pat = oldPat; ado.getRelations = oldRelations; });
+  config.orgUrl = 'https://dev.azure.com/example';
+  config.pat = 'test-token';
+  let requestedId;
+  ado.getRelations = async (id) => { requestedId = id; return []; };
+  const item = { id: 1, external_id: '86852', project: 'Example', source_scope: config.orgUrl };
+  assert.deepEqual(await getProvider('azure-devops').getRelatedLinks(item), []);
+  assert.equal(requestedId, '86852');
+  await assert.rejects(getProvider('azure-devops').getRelatedLinks({ ...item, source_scope: 'https://dev.azure.com/other' }), /different.*organization/);
 });
 
 test('saving Azure DevOps settings preserves other providers and unrelated environment settings', () => {

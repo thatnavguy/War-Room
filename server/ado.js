@@ -180,6 +180,13 @@ async function getUpdates(workItemId) {
   return data.value || [];
 }
 
+async function getRelations(workItemId) {
+  const item = await adoFetch(
+    `_apis/wit/workitems/${encodeURIComponent(workItemId)}?$expand=relations&api-version=${API_VERSION}`
+  );
+  return item.relations || [];
+}
+
 module.exports = {
   imageAttachmentUrl,
   getImageAttachment,
@@ -190,4 +197,5 @@ module.exports = {
   queryChangedSince,
   getWorkItems,
   getUpdates,
+  getRelations,
 };

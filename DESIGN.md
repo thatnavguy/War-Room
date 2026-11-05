@@ -226,6 +226,9 @@ The desktop work-item table uses navy column headers with light text, matching s
 Column headers stay below the workspace toolbar while scrolling through the list.
 Narrow screens retain the labeled item layout rather than a sticky table header.
 
+Related links uses the shared navy section heading and a sticky-menu shortcut. Group links by their actual relation type,
+with link text, supplied update dates, and comments. Unresolved artifact links clearly point back to Azure DevOps.
+
 ## Elevation & Depth
 
 The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel.

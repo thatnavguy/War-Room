@@ -31,6 +31,8 @@ The setup page writes to the same `.env` file.
   Press `/` to focus search, Esc to clear.
 - Filter by project, type, state, iteration, priority level, and date range.
   The project filter only lists projects with items you have touched, including previously touched closed items.
+  Search and filters stay selected when you return from a work item or reload the page in the same tab.
+  Use **Clear filters** to reset them.
 - Priority level appears in item details, the work-item list, and its own dashboard filter.
   Azure DevOps uses the custom **Priority Level** field when available, or its standard numeric **Priority** otherwise.
   Sync once after upgrading to fetch priorities for previously tracked items. Missing priorities display as a dash.
@@ -44,6 +46,11 @@ The setup page writes to the same `.env` file.
   and revisions without comments. Clear it to see the full history again.
 - Use the section menu at the top of a work item to jump to **Description** or **Comments & history**.
   The menu stays visible as you scroll. It only shows sections that are available.
+- **Related links** shows existing linked work items, commits, pull requests, and web links, grouped by type.
+  Links load live from Azure DevOps; no sync is needed. Attachments remain in their separate section.
+  Azure DevOps Git links open directly. GitHub artifact links use an internal repository ID,
+  so they explicitly open the source work item in Azure DevOps instead of guessing a GitHub URL.
+  Add or edit links in Azure DevOps; Mission Hall remains read-only.
 - Closed and Removed items are hidden everywhere.
 
 Data lives in `data/devops-center.db` (SQLite). Nothing leaves your machine

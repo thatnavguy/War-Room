@@ -3,6 +3,14 @@
 const config = require('./config');
 const ado = require('./ado');
 const { sanitizeHtml, summarizeUpdates } = require('./sanitize');
+const { mapRelatedLinks } = require('./related-links');
+
+function requireAzureScope(item) {
+  if (!config.isConfigured()) throw new Error('Configure Azure DevOps in Settings before loading live work-item activity.');
+  if (item.source_scope !== config.orgUrl) {
+    throw new Error('This item belongs to a different Azure DevOps organization. Connect that organization in Settings to load its activity.');
+  }
+}
 
 const azureDevOps = {
   id: 'azure-devops',
@@ -12,10 +20,12 @@ const azureDevOps = {
   runSync: () => require('./azure-sync').runSync(),
   syncStatus: () => require('./azure-sync').syncStatus(),
   async getHistory(item) {
-    if (item.source_scope !== config.orgUrl) {
-      throw new Error('This item belongs to a different Azure DevOps organization. Connect that organization in Settings to load its history.');
-    }
+    requireAzureScope(item);
     return summarizeUpdates(await ado.getUpdates(item.external_id));
+  },
+  async getRelatedLinks(item) {
+    requireAzureScope(item);
+    return mapRelatedLinks(await ado.getRelations(item.external_id), item);
   },
   sanitizeRichText: sanitizeHtml,
 };

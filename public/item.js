@@ -37,6 +37,7 @@ async function load() {
   if (!id) {
     $('#item-title').textContent = 'No work item selected';
     $('#history-status').textContent = 'Return to My work and select an item to see its details.';
+    $('#links-status').textContent = 'Select a work item to see its related links.';
     return;
   }
 
@@ -44,6 +45,7 @@ async function load() {
   if (!res.ok) {
     $('#item-title').textContent = 'Item not found';
     $('#history-status').textContent = 'This work item is not in your local tracker. Return to My work and sync if you expect it to appear.';
+    $('#links-status').textContent = 'Related links are unavailable because this work item is not in your local tracker.';
     return;
   }
   const item = await res.json();
@@ -126,7 +128,67 @@ async function load() {
     section.tabIndex = -1;
   }
   sectionNav.hidden = false;
-  await loadHistory(id);
+  await Promise.all([loadHistory(id), loadRelatedLinks(id)]);
+}
+
+async function loadRelatedLinks(id) {
+  const status = $('#links-status');
+  const target = $('#related-links');
+  try {
+    const res = await fetch(`/api/items/${id}/links`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load related links');
+    target.replaceChildren();
+    status.textContent = data.links.length ? `${data.links.length} related links` : 'No related links on this work item.';
+    const groups = new Map();
+    for (const link of data.links) {
+      if (!groups.has(link.type)) groups.set(link.type, []);
+      groups.get(link.type).push(link);
+    }
+    for (const [type, links] of groups) {
+      const group = document.createElement('div');
+      const heading = document.createElement('h3');
+      heading.textContent = type;
+      group.appendChild(heading);
+      for (const note of new Set(links.filter((link) => link.url && link.note).map((link) => link.note))) {
+        const explanation = document.createElement('p');
+        explanation.className = 'muted';
+        explanation.textContent = note;
+        group.appendChild(explanation);
+      }
+      const list = document.createElement('ul');
+      for (const link of links) {
+        const entry = document.createElement('li');
+        const title = document.createElement(link.url ? 'a' : 'strong');
+        title.textContent = link.title;
+        if (link.url) {
+          title.href = link.url;
+          title.target = '_blank';
+          title.rel = 'noopener noreferrer';
+          if (link.note) title.textContent += ' — Open in Azure DevOps';
+        }
+        entry.appendChild(title);
+        if (link.updated) {
+          const date = document.createElement('span');
+          date.className = 'muted';
+          date.textContent = `Updated ${fmtDate(link.updated)}`;
+          entry.appendChild(date);
+        }
+        for (const text of [link.comment, link.url ? '' : link.note]) {
+          if (!text) continue;
+          const description = document.createElement('p');
+          description.className = 'muted';
+          description.textContent = text;
+          entry.appendChild(description);
+        }
+        list.appendChild(entry);
+      }
+      group.appendChild(list);
+      target.appendChild(group);
+    }
+  } catch (err) {
+    status.textContent = `Could not load related links: ${err.message}. Check the connection in Settings, then reload this page.`;
+  }
 }
 
 async function loadHistory(id) {
@@ -218,4 +280,5 @@ function trunc(s) {
 
 load().catch((err) => {
   $('#history-status').textContent = `Could not load this work item: ${err.message}`;
+  $('#links-status').textContent = `Could not load this work item: ${err.message}`;
 });

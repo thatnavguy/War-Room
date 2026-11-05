@@ -14,6 +14,28 @@ const filterEls = {
   to: $('#f-to'),
 };
 const mineCheckbox = $('#f-mine');
+const FILTER_STORAGE_KEY = 'mission-hall.work-filters';
+
+function saveFilters() {
+  const params = new URLSearchParams();
+  params.set('search', searchInput.value);
+  for (const [key, el] of Object.entries(filterEls)) {
+    if (el.value) params.set(key, el.value);
+  }
+  if (mineCheckbox.checked) params.set('mine', '1');
+  sessionStorage.setItem(FILTER_STORAGE_KEY, params.toString());
+}
+
+function restoreFilters() {
+  const saved = sessionStorage.getItem(FILTER_STORAGE_KEY);
+  if (saved === null) return;
+  const params = new URLSearchParams(saved);
+  searchInput.value = params.get('search') || '';
+  for (const [key, el] of Object.entries(filterEls)) {
+    el.value = params.get(key) || '';
+  }
+  mineCheckbox.checked = params.get('mine') === '1';
+}
 
 let staleCutoff = null;
 let meName = '';
@@ -85,6 +107,7 @@ async function loadFilters() {
     filterEls.provider.appendChild(new Option(provider.label, provider.id));
   }
   $('#provider-filter').hidden = providers.length < 2;
+  restoreFilters();
 }
 
 function fill(select, values, placeholder) {
@@ -98,6 +121,7 @@ function fill(select, values, placeholder) {
 }
 
 async function loadItems() {
+  saveFilters();
   const params = new URLSearchParams();
   if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
   for (const [key, el] of Object.entries(filterEls)) {
@@ -238,7 +262,10 @@ function debounce(fn, ms) {
 }
 
 const debouncedLoad = debounce(loadItems, 200);
-searchInput.addEventListener('input', debouncedLoad);
+searchInput.addEventListener('input', () => {
+  saveFilters();
+  debouncedLoad();
+});
 for (const el of Object.values(filterEls)) el.addEventListener('change', loadItems);
 mineCheckbox.addEventListener('change', loadItems);
 
