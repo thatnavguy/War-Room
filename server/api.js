@@ -119,6 +119,16 @@ router.get('/items/:id/links', async (req, res) => {
   }
 });
 
+router.get('/items/:id/attachments', async (req, res) => {
+  const item = db.getItem(parseInt(req.params.id, 10));
+  if (!item) return res.status(404).json({ error: 'Not found' });
+  try {
+    res.json({ attachments: await getProvider(item.provider).getAttachments(item) });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
 router.get('/attachments/image', async (req, res) => {
   if (!config.isConfigured()) return res.status(400).json({ error: 'Configure Azure DevOps before loading screenshots.' });
   if (!ado.imageAttachmentUrl(req.query.url)) {

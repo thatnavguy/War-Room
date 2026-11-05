@@ -39,6 +39,7 @@ async function load() {
     $('#item-title').textContent = 'No work item selected';
     $('#history-status').textContent = 'Return to My work and select an item to see its details.';
     $('#links-status').textContent = 'Select a work item to see its related links.';
+    $('#attachments-status').textContent = 'Select a work item to see its attachments.';
     return;
   }
 
@@ -47,6 +48,7 @@ async function load() {
     $('#item-title').textContent = 'Item not found';
     $('#history-status').textContent = 'This work item is not in your local tracker. Return to My work and sync if you expect it to appear.';
     $('#links-status').textContent = 'Related links are unavailable because this work item is not in your local tracker.';
+    $('#attachments-status').textContent = 'Attachments are unavailable because this work item is not in your local tracker.';
     return;
   }
   const item = await res.json();
@@ -110,21 +112,6 @@ async function load() {
     $('#desc-heading').textContent = 'Description';
   }
 
-  if (item.attachments && item.attachments.length > 0) {
-    $('#sec-attachments').hidden = false;
-    const ul = $('#attachments');
-    for (const att of item.attachments) {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = att.url;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.textContent = att.name;
-      li.appendChild(a);
-      ul.appendChild(li);
-    }
-  }
-
   const sectionNav = $('#item-sections');
   for (const link of sectionNav.querySelectorAll('a:not(#source-link)')) {
     const section = $(link.getAttribute('href'));
@@ -132,7 +119,64 @@ async function load() {
     section.tabIndex = -1;
   }
   sectionNav.hidden = false;
-  await Promise.all([loadHistory(id), loadRelatedLinks(id)]);
+  await Promise.all([loadHistory(id), loadRelatedLinks(id), loadAttachments(id)]);
+}
+
+async function loadAttachments(id) {
+  const status = $('#attachments-status');
+  const list = $('#attachments');
+  try {
+    const res = await fetch(`/api/items/${id}/attachments`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load attachments');
+    list.replaceChildren();
+    status.textContent = data.attachments.length
+      ? `${data.attachments.length} attachment${data.attachments.length === 1 ? '' : 's'}. File links open in Azure DevOps.`
+      : 'No attachments on this work item.';
+    for (const attachment of data.attachments) {
+      const entry = document.createElement('li');
+      const info = document.createElement('div');
+      info.className = 'attachment-info';
+      const link = document.createElement(attachment.url ? 'a' : 'span');
+      link.textContent = attachment.name;
+      if (attachment.url) {
+        link.href = attachment.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
+      info.appendChild(link);
+      if (attachment.size != null) {
+        const size = document.createElement('span');
+        size.className = 'muted';
+        size.textContent = attachment.size < 1024 ? `${attachment.size} B`
+          : attachment.size < 1024 * 1024 ? `${(attachment.size / 1024).toFixed(1)} KB`
+            : `${(attachment.size / (1024 * 1024)).toFixed(1)} MB`;
+        info.appendChild(size);
+      }
+      entry.appendChild(info);
+      if (!attachment.url) {
+        const warning = document.createElement('p');
+        warning.className = 'image-error';
+        warning.textContent = 'This attachment has an unsupported source URL. Open the work item in Azure DevOps to view it.';
+        entry.appendChild(warning);
+      } else if (attachment.preview_url) {
+        const image = document.createElement('img');
+        image.alt = attachment.name;
+        image.loading = 'lazy';
+        image.addEventListener('error', () => {
+          const warning = document.createElement('p');
+          warning.className = 'image-error';
+          warning.textContent = 'Preview unavailable. Use the file link above to open it in Azure DevOps.';
+          image.replaceWith(warning);
+        }, { once: true });
+        image.src = attachment.preview_url;
+        entry.appendChild(image);
+      }
+      list.appendChild(entry);
+    }
+  } catch (err) {
+    status.textContent = `Could not load attachments: ${err.message}. Check Settings and reload this page.`;
+  }
 }
 
 async function loadRelatedLinks(id) {

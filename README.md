@@ -49,6 +49,9 @@ The setup page writes to the same `.env` file.
 - Screenshots in descriptions and comments appear inline. The local server loads
   them with your saved Azure DevOps token; the token is never sent to the browser.
   PNG, JPEG, GIF, WebP, and BMP images up to 20 MB are supported.
+- **Attachments** loads the work item's current files without another sync.
+  Image files have inline previews. File links open in Azure DevOps, where you may need to sign in.
+  File sizes appear when Azure DevOps supplies them. Upload or remove files in Azure DevOps.
 - Select **Comments only** beside **Comments & history** to hide field changes
   and revisions without comments. Clear it to see the full history again.
 - Use the section menu at the top of a work item to jump to **Description** or **Comments & history**.

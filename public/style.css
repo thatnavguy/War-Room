@@ -398,6 +398,11 @@ button:disabled { cursor: wait; opacity: .68; }
 .my-name, .rich-text a.my-name { padding: 1px 4px; border-radius: 3px; background: var(--signal-amber); color: var(--ink); font-weight: 650; box-decoration-break: clone; }
 .attachments { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
 .attachments a { color: var(--accent); }
+.attachments > li { padding: 14px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.attachment-info { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+.attachment-info a, .attachment-info > span:first-child { overflow-wrap: anywhere; min-width: 0; }
+.attachment-info .muted { flex-shrink: 0; }
+.attachments img { display: block; max-width: 100%; max-height: 640px; height: auto; margin-top: 14px; object-fit: contain; object-position: left top; }
 .related-links { display: grid; gap: 20px; }
 .related-links h3 { margin: 0 0 8px; font-size: 17px; font-weight: 650; }
 .related-links > div > p { margin: 0 0 12px; }

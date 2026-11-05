@@ -187,6 +187,23 @@ async function getRelations(workItemId) {
   return item.relations || [];
 }
 
+async function getAttachments(workItemId) {
+  return (await getRelations(workItemId))
+    .filter((relation) => relation.rel === 'AttachedFile')
+    .map((relation) => {
+      const name = relation.attributes?.name || 'Attachment';
+      const url = imageAttachmentUrl(relation.url);
+      const size = relation.attributes?.resourceSize;
+      return {
+        name,
+        url: url ? `${url}&fileName=${encodeURIComponent(name)}&download=true` : null,
+        preview_url: url && /\.(png|jpe?g|gif|webp|bmp)$/i.test(name)
+          ? `/api/attachments/image?url=${encodeURIComponent(url)}` : null,
+        size: Number.isFinite(size) && size >= 0 ? size : null,
+      };
+    });
+}
+
 module.exports = {
   imageAttachmentUrl,
   getImageAttachment,
@@ -198,4 +215,5 @@ module.exports = {
   getWorkItems,
   getUpdates,
   getRelations,
+  getAttachments,
 };

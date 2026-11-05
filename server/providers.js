@@ -28,6 +28,10 @@ const azureDevOps = {
     requireAzureScope(item);
     return mapRelatedLinks(await ado.getRelations(item.external_id), item);
   },
+  async getAttachments(item) {
+    requireAzureScope(item);
+    return ado.getAttachments(item.external_id);
+  },
   sanitizeRichText(html, item) {
     const meId = item ? require('./db').getSyncState('meId', 'azure-devops', item.source_scope) : '';
     return sanitizeHtml(html, meId || '');
