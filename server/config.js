@@ -6,6 +6,19 @@ require('dotenv').config();
 
 const ENV_PATH = path.join(__dirname, '..', '.env');
 
+function mergeEnv(content, values) {
+  const remaining = new Map(Object.entries(values));
+  const lines = content.split(/\r?\n/).filter((line, i, all) => i !== all.length - 1 || line !== '');
+  const result = lines.map((line) => {
+    const match = line.match(/^\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=/);
+    if (!match || !Object.hasOwn(values, match[1])) return line;
+    remaining.delete(match[1]);
+    return `${match[1]}=${values[match[1]]}`;
+  });
+  for (const [key, value] of remaining) result.push(`${key}=${value}`);
+  return result.join('\n') + '\n';
+}
+
 function intFromEnv(name, fallback) {
   const raw = process.env[name];
   if (!raw) return fallback;
@@ -50,9 +63,8 @@ const config = {
       LOOKBACK_DAYS: String(lookbackDays || 365),
     };
 
-    const content = Object.entries(values)
-      .map(([k, v]) => `${k}=${v}`)
-      .join('\n') + '\n';
+    const existing = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf8') : '';
+    const content = mergeEnv(existing, values);
     fs.writeFileSync(ENV_PATH, content, 'utf8');
 
     for (const [k, v] of Object.entries(values)) process.env[k] = v;
@@ -64,3 +76,4 @@ const config = {
 config.load();
 
 module.exports = config;
+module.exports.mergeEnv = mergeEnv;

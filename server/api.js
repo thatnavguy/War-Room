@@ -5,9 +5,11 @@ const db = require('./db');
 const sync = require('./sync');
 const config = require('./config');
 const ado = require('./ado');
-const { sanitizeHtml, summarizeUpdates } = require('./sanitize');
+const { getProvider, listProviders, describeItem } = require('./providers');
 
 const router = express.Router();
+
+router.get('/providers', (req, res) => res.json({ providers: listProviders() }));
 
 router.get('/config', (req, res) => {
   res.json({
@@ -42,7 +44,7 @@ router.post('/sync', async (req, res) => {
     return res.status(400).json({ error: 'Not configured. Open the setup page first.' });
   }
   try {
-    const stats = await sync.runSync();
+    const stats = await sync.runSync(req.body?.provider || 'azure-devops');
     res.json(stats);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -54,7 +56,7 @@ router.get('/sync/status', (req, res) => {
 });
 
 router.get('/me', (req, res) => {
-  res.json({ displayName: db.getSyncState('meDisplayName') || '' });
+  res.json({ displayName: db.getSyncState('meDisplayName') || '', provider: 'azure-devops', source_scope: config.orgUrl });
 });
 
 router.get('/summary', (req, res) => {
@@ -65,6 +67,7 @@ router.get('/items', (req, res) => {
   const filters = {
     search: req.query.search || '',
     project: req.query.project || '',
+    provider: req.query.provider || '',
     type: req.query.type || '',
     state: req.query.state || '',
     iteration: req.query.iteration || '',
@@ -75,18 +78,20 @@ router.get('/items', (req, res) => {
     limit: parseInt(req.query.limit, 10) || 200,
     offset: parseInt(req.query.offset, 10) || 0,
   };
-  res.json(db.queryItems(filters));
+  const result = db.queryItems(filters);
+  res.json({ ...result, items: result.items.map(describeItem) });
 });
 
 router.get('/items/:id', (req, res) => {
   const item = db.getItem(parseInt(req.params.id, 10));
   if (!item) return res.status(404).json({ error: 'Not found' });
+  const { sanitizeRichText } = getProvider(item.provider);
   res.json({
-    ...item,
-    description: sanitizeHtml(item.description),
-    acceptance_criteria: sanitizeHtml(item.acceptance_criteria),
-    repro_steps: sanitizeHtml(item.repro_steps),
-    history: sanitizeHtml(item.history),
+    ...describeItem(item),
+    description: sanitizeRichText(item.description),
+    acceptance_criteria: sanitizeRichText(item.acceptance_criteria),
+    repro_steps: sanitizeRichText(item.repro_steps),
+    history: sanitizeRichText(item.history),
     attachments: item.attachments ? JSON.parse(item.attachments) : [],
   });
 });
@@ -96,8 +101,7 @@ router.get('/items/:id/history', async (req, res) => {
   const item = db.getItem(id);
   if (!item) return res.status(404).json({ error: 'Not found' });
   try {
-    const updates = await ado.getUpdates(id);
-    res.json({ revisions: summarizeUpdates(updates) });
+    res.json({ revisions: await getProvider(item.provider).getHistory(item) });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

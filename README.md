@@ -43,3 +43,34 @@ The setup page writes to the same `.env` file.
 
 Data lives in `data/devops-center.db` (SQLite). Nothing leaves your machine
 except read-only calls to your Azure DevOps org.
+
+## Work sources and future GitHub support
+
+Azure DevOps is the only supported connection today. GitHub is not connected or synced yet.
+Settings separates the connection from the workspace. Each item's source appears in its details
+and controls the **Open in …** link. A source filter appears when multiple providers are implemented.
+
+The app now separates local item IDs from source IDs. An item is unique by provider,
+source scope, and external ID. For Azure DevOps, the scope is the organization URL.
+For GitHub, use the host and repository together, not the issue number alone.
+Existing item links, comments, and saved data keep their local IDs after migration.
+Sync checkpoints and profile names are also separate for each provider and scope.
+
+To add a provider, register its adapter in `server/providers.js`. It must supply its ID, display name,
+connection check, scope, sync functions, history loader, and safe rich-text renderer.
+Keep API calls and source-specific field mapping inside that provider's implementation.
+`server/azure-sync.js` is the existing Azure DevOps implementation.
+
+Save normalized items through `server/store.js` with `provider`, `source_scope`,
+`external_id`, and an `is_closed` boolean. Use the local ID returned by `saveItem()`
+when recording touches. Use external IDs for remote calls and display.
+History must return the existing `{ rev, date, by, comment, changes }` entries;
+comments must be safe HTML. The authenticated screenshot endpoint remains Azure DevOps-only.
+Do not send another provider's URLs or credentials through it.
+
+GitHub authentication, issue and pull-request mapping, Markdown rendering, and screenshot
+access still need implementation. Extending the connection forms and sync controls is also required.
+Unknown providers fail explicitly rather than returning empty results.
+Saving Azure DevOps settings preserves unrelated `.env` entries.
+
+Run the regression checks with `npm test`.

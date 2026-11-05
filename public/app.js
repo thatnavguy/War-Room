@@ -4,6 +4,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const searchInput = $('#search');
 const filterEls = {
+  provider: $('#f-provider'),
   project: $('#f-project'),
   type: $('#f-type'),
   state: $('#f-state'),
@@ -16,6 +17,9 @@ const mineCheckbox = $('#f-mine');
 
 let staleCutoff = null;
 let meName = '';
+let meProvider = '';
+let meScope = '';
+let providers = [];
 let staleDays = 14;
 let currentItems = [];
 
@@ -41,7 +45,7 @@ async function loadSummary() {
   $('#last-sync').textContent = s.lastSync
     ? `Last synced ${new Date(s.lastSync).toLocaleString()}`
     : 'Never synced';
-  $('#rail-connection').textContent = 'Connected · local tracking';
+  $('#rail-connection').textContent = `${providers.filter((provider) => provider.configured).map((provider) => provider.label).join(', ')} · local tracking`;
   $('#attention-caption').textContent = `No update in ${s.staleDays}+ days`;
 
   staleCutoff = new Date(Date.now() - s.staleDays * 86400000);
@@ -76,6 +80,11 @@ async function loadFilters() {
   fill(filterEls.state, f.states, 'All states');
   fill(filterEls.iteration, f.iterations, 'All iterations');
   fill(filterEls.touch, f.touches, 'All touch types');
+  filterEls.provider.replaceChildren(new Option('All sources', ''));
+  for (const provider of providers) {
+    filterEls.provider.appendChild(new Option(provider.label, provider.id));
+  }
+  $('#provider-filter').hidden = providers.length < 2;
 }
 
 function fill(select, values, placeholder) {
@@ -121,12 +130,12 @@ async function loadItems() {
     if (staleCutoff && item.changed_date && new Date(item.changed_date) < staleCutoff) {
       tr.classList.add('stale-row');
     }
-    if (meName && item.assigned_to === meName) {
+    if (meName && item.provider === meProvider && item.source_scope === meScope && item.assigned_to === meName) {
       tr.classList.add('mine-row');
     }
 
     const cells = [
-      { label: 'ID', value: item.id, kind: 'id' },
+      { label: 'ID', value: item.external_id, kind: 'id' },
       { label: 'Title', value: item.title, kind: 'title' },
       { label: 'Type', value: item.type },
       { label: 'State', value: item.state, kind: 'state' },
@@ -143,7 +152,8 @@ async function loadItems() {
         td.className = 'id-cell';
         const a = document.createElement('a');
         a.href = `/item.html?id=${item.id}`;
-        a.textContent = item.id;
+        a.textContent = item.external_id;
+        a.title = `${item.provider_label} · ${item.source_scope}`;
         td.appendChild(a);
       } else if (cell.kind === 'title') {
         td.className = 'title-cell';
@@ -297,9 +307,13 @@ $('#sync-btn').addEventListener('click', async () => {
 });
 
 async function init() {
+  const providerRes = await fetch('/api/providers');
+  const providerData = await providerRes.json();
+  if (!providerRes.ok) throw new Error(providerData.error || 'Could not load work sources.');
+  providers = providerData.providers;
   const configRes = await fetch('/api/config');
   const cfg = await configRes.json();
-  if (!configRes.ok) throw new Error(cfg.error || 'Could not check the Azure DevOps connection.');
+  if (!configRes.ok) throw new Error(cfg.error || 'Could not check your work connections.');
   if (!cfg.configured) {
     $('#unconfigured').hidden = false;
     $('#sync-btn').disabled = true;
@@ -313,6 +327,8 @@ async function init() {
   const me = await meRes.json();
   if (!meRes.ok) throw new Error(me.error || 'Could not load your Azure DevOps profile.');
   meName = me.displayName;
+  meProvider = me.provider;
+  meScope = me.source_scope;
   await loadSummary();
   await loadFilters();
   await Promise.all([loadItems(), loadAttention()]);

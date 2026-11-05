@@ -26,7 +26,7 @@ function renderRichText(target, html) {
     image.addEventListener('error', () => {
       const message = document.createElement('p');
       message.className = 'image-error';
-      message.textContent = 'Could not load this screenshot. Check the Azure DevOps connection in Settings, then reload this page.';
+      message.textContent = 'Could not load this screenshot. Check the source connection in Settings, then reload this page.';
       image.replaceWith(message);
     }, { once: true });
   }
@@ -48,15 +48,19 @@ async function load() {
   }
   const item = await res.json();
 
-  document.title = `${item.id} — Mission Hall`;
-  $('#item-title').textContent = `${item.type} ${item.id}: ${item.title}`;
+  document.title = `${item.external_id} — Mission Hall`;
+  $('#item-title').textContent = `${item.type} ${item.external_id}: ${item.title}`;
+  $('#item-provider').textContent = item.provider_label;
+  $('#item-source-caption').textContent = `${item.provider_label} work item`;
   if (item.url) {
-    $('#ado-link').href = item.url;
-    $('#ado-link').hidden = false;
+    $('#source-link').href = item.url;
+    $('#source-link').textContent = `Open in ${item.provider_label} ↗`;
+    $('#source-link').hidden = false;
   }
 
   const fields = [
-    ['ID', item.id],
+    ['ID', item.external_id],
+    ['Source', item.provider_label],
     ['Type', item.type],
     ['State', item.state],
     ['Project', item.project],
@@ -115,7 +119,7 @@ async function load() {
   }
 
   const sectionNav = $('#item-sections');
-  for (const link of sectionNav.querySelectorAll('a:not(#ado-link)')) {
+  for (const link of sectionNav.querySelectorAll('a:not(#source-link)')) {
     const section = $(link.getAttribute('href'));
     link.hidden = section.hidden;
     section.tabIndex = -1;

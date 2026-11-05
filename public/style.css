@@ -412,7 +412,8 @@ button:disabled { cursor: wait; opacity: .68; }
 .change-field { color: var(--ink); font-weight: 600; }
 .muted { color: var(--muted); font-size: 12px; }
 .item-main .muted { font-size: 15px; }
-#ado-link { margin-left: auto; color: var(--accent); }
+#source-link { margin-left: auto; color: var(--accent); }
+.filter-field[hidden] { display: none; }
 
 .setup-intro { max-width: 68ch; margin: 0 0 22px; color: var(--muted); font-size: 14px; }
 .setup-card { max-width: 780px; padding: 22px; border: 1px solid var(--line); background: var(--surface); }

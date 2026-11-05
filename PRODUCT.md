@@ -37,6 +37,9 @@ The dashboard should surface work that needs attention before the wider workload
 
 The product name is Mission Hall.
 
+Azure DevOps is currently the only implemented work source. The app separates provider adapters,
+local item IDs, source IDs, and per-source sync state to prepare for GitHub without enabling it yet.
+
 ## Evidence on Hand
 
 - The existing implementation and product description are in `README.md`, `public/index.html`, `public/item.html`, and `public/setup.html`.

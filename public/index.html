@@ -28,7 +28,7 @@
     </nav>
     <div class="rail-account">
       <span class="connection-dot" aria-hidden="true"></span>
-      <span><strong>Azure DevOps</strong><small id="rail-connection">Checking connection</small></span>
+      <span><strong>Work sources</strong><small id="rail-connection">Checking connection</small></span>
     </div>
   </aside>
 
@@ -116,6 +116,7 @@
           </label>
         </div>
         <div class="filters" aria-label="Filter work items">
+          <label id="provider-filter" class="filter-field" hidden><span>Source</span><select id="f-provider" aria-label="Source"><option value="">All sources</option></select></label>
           <label class="filter-field"><span>Project</span><select id="f-project" aria-label="Project"><option value="">All projects</option></select></label>
           <label class="filter-field"><span>Type</span><select id="f-type" aria-label="Type"><option value="">All types</option></select></label>
           <label class="filter-field"><span>State</span><select id="f-state" aria-label="State"><option value="">All states</option></select></label>

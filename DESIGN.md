@@ -215,6 +215,10 @@ Work-item details use the full workspace width for field values, descriptions, a
 
 Work-item pages have a sticky section menu for quick jumps to available sections and an Open in Azure DevOps link. Section dividers separate long descriptions from activity. Every section uses the same navy heading bar, including Details and Why it’s in your work list. The Comments only filter sits inside the Comments & history heading bar.
 
+The workspace uses Work sources and Connections as shared labels. Provider-specific forms keep their actual provider names.
+Item details identify the source, and the sticky menu uses Open in followed by that source's name.
+Only implemented providers appear; the source filter stays hidden when there is a single provider.
+
 ## Elevation & Depth
 
 The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel.
