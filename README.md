@@ -1,0 +1,45 @@
+# Mission Hall
+
+A lightweight, local-only web app that tracks Azure DevOps work items you have touched:
+currently assigned, previously assigned, created, edited, or commented.
+
+## Setup
+
+1. `npm install`
+2. `npm start` → http://localhost:4073
+3. Open the **setup page** (linked on the dashboard, or http://localhost:4073/setup.html)
+   and enter your organization URL (e.g. `https://dev.azure.com/myorg`) and a
+   Personal Access Token with **Work Items (Read)** scope. Save — that's it.
+
+Prefer files? You can also copy `.env.example` to `.env` and fill it in manually.
+The setup page writes to the same `.env` file.
+
+## Optional settings (.env)
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `PROJECTS` | all projects | Comma-separated project names to limit sync scope |
+| `PORT` | 4073 | Local server port |
+| `STALE_DAYS` | 14 | Days without update before an open item "needs attention" |
+| `LOOKBACK_DAYS` | 365 | How far back the first sync deep-scans for your edits/comments |
+
+## Usage
+
+- Click **Sync** to incrementally fetch new/changed items. The first sync is the
+  heaviest; later syncs only fetch what changed since the watermark.
+- Search by ID, title, tag, project, or state — results filter as you type.
+  Press `/` to focus search, Esc to clear.
+- Filter by project, type, state, iteration, touch type, and date range.
+- Open an item to see exactly why it's tracked (assigned / created / edited /
+  commented) and jump to it in Azure DevOps.
+- Screenshots in descriptions and comments appear inline. The local server loads
+  them with your saved Azure DevOps token; the token is never sent to the browser.
+  PNG, JPEG, GIF, WebP, and BMP images up to 20 MB are supported.
+- Select **Comments only** beside **Comments & history** to hide field changes
+  and revisions without comments. Clear it to see the full history again.
+- Use the section menu at the top of a work item to jump to **Description** or **Comments & history**.
+  The menu stays visible as you scroll. It only shows sections that are available.
+- Closed and Removed items are hidden everywhere.
+
+Data lives in `data/devops-center.db` (SQLite). Nothing leaves your machine
+except read-only calls to your Azure DevOps org.

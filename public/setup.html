@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10243a">
+<title>Settings — Mission Hall</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="side-rail">
+    <a class="brand" href="/" aria-label="Mission Hall home">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M8 5.5h11.8a3.7 3.7 0 0 1 3.1 1.7L27 14a3.7 3.7 0 0 1 0 4l-4.1 6.8a3.7 3.7 0 0 1-3.1 1.7H8a3 3 0 0 1-2.6-4.5l4.3-7-4.3-5A3 3 0 0 1 8 5.5Z" stroke="currentColor" stroke-width="1.7"/><path d="m11 17 3.2 3.2L22 12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.9"/></svg></span>
+      <span>Mission Hall</span>
+    </a>
+    <nav class="primary-nav" aria-label="Main navigation">
+      <a class="nav-link" href="/"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5h6v5H4zm10 0h6v8h-6zM4 14.5h6V19H4zm10 2h6V19h-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>My work</span></a>
+      <a class="nav-link is-active" href="/setup.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3.8" stroke="currentColor" stroke-width="1.6"/><path d="m19.4 13.7 1.1.9-1.6 2.8-1.4-.5a7.8 7.8 0 0 1-1.6.9l-.2 1.5h-3.3l-.2-1.5a7.8 7.8 0 0 1-1.6-.9l-1.4.5-1.6-2.8 1.1-.9a7.7 7.7 0 0 1 0-1.8l-1.1-.9 1.6-2.8 1.4.5a7.8 7.8 0 0 1 1.6-.9l.2-1.5h3.3l.2 1.5a7.8 7.8 0 0 1 1.6.9l1.4-.5 1.6 2.8-1.1.9a7.7 7.7 0 0 1 0 1.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Settings</span></a>
+    </nav>
+    <div class="rail-account"><span class="connection-dot" aria-hidden="true"></span><span><strong>Azure DevOps</strong><small>Connection settings</small></span></div>
+  </aside>
+  <main class="workspace">
+    <header class="topbar"><div class="breadcrumb"><span>Workspace</span><span class="breadcrumb-slash">/</span><strong>Settings</strong></div><div class="topbar-actions"><a class="settings-link" href="/">Back to my work</a></div></header>
+    <div class="subpage-content">
+      <div class="subpage-heading"><div><h1>Azure DevOps connection</h1><p>Choose which work to track and how often items need attention.</p></div></div>
+      <p class="setup-intro">Your work-item data stays in the local database on this computer. The connection uses read-only access to your Azure DevOps organization.</p>
+      <section class="setup-card" aria-labelledby="connection-heading">
+        <h2 id="connection-heading">Connection details</h2>
+        <form id="setup-form" class="setup-form">
+          <label class="form-field"><span>Organization URL</span><input id="org-url" type="url" placeholder="https://dev.azure.com/myorg" autocomplete="url" required></label>
+          <label class="form-field">
+            <span>Personal Access Token <small>(Work Items — Read scope)</small></span>
+            <input id="pat" type="password" placeholder="Paste a token" autocomplete="new-password">
+            <small id="pat-hint" role="status"></small>
+          </label>
+          <label class="form-field">
+            <span>Projects <small>(optional; leave blank to include all projects)</small></span>
+            <input id="projects" type="text" placeholder="Project names, separated by commas">
+          </label>
+          <div class="form-row">
+            <label class="form-field"><span>Port <small>(requires restart)</small></span><input id="port" type="number" min="1" max="65535" value="4073"></label>
+            <label class="form-field"><span>Flag items after (days)</span><input id="stale-days" type="number" min="1" value="14"></label>
+            <label class="form-field"><span>First sync looks back (days)</span><input id="lookback-days" type="number" min="1" value="365"></label>
+          </div>
+          <div class="form-actions"><button type="submit" id="save-btn" class="button">Save settings</button><span id="save-status" class="muted" role="status" aria-live="polite"></span></div>
+        </form>
+      </section>
+      <p class="setup-note">Your token is stored in this app’s local <code>.env</code> file and is never shown here after saving.</p>
+      <footer class="workspace-footer"><a href="/">← Back to my work</a><span>Mission Hall</span></footer>
+    </div>
+  </main>
+</div>
+<script src="setup.js"></script>
+</body>
+</html>
