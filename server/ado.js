@@ -151,14 +151,24 @@ const FIELDS = [
 ];
 
 async function getWorkItems(ids) {
+  if (ids.length === 0) return [];
+  const metadata = await adoFetch(`_apis/wit/fields?api-version=${API_VERSION}`);
+  const priorityField = (metadata.value || []).find((field) => field.name === 'Priority Level');
+  const fields = [...FIELDS, 'Microsoft.VSTS.Common.Priority'];
+  if (priorityField) fields.push(priorityField.referenceName);
   const results = [];
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     const batch = ids.slice(i, i + BATCH_SIZE);
     const data = await adoFetch(
       `_apis/wit/workitemsbatch?api-version=${API_VERSION}&$expand=relations`,
-      { method: 'POST', body: { ids: batch, fields: FIELDS } }
+      { method: 'POST', body: { ids: batch, fields } }
     );
-    results.push(...(data.value || []));
+    results.push(...(data.value || []).map((item) => {
+      const value = priorityField && item.fields?.[priorityField.referenceName];
+      const standard = item.fields?.['Microsoft.VSTS.Common.Priority'];
+      return { ...item, priority_level: value != null && String(value).trim() !== ''
+        ? String(value) : (standard == null ? null : String(standard)) };
+    }));
   }
   return results;
 }

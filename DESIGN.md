@@ -219,6 +219,13 @@ The workspace uses Work sources and Connections as shared labels. Provider-speci
 Item details identify the source, and the sticky menu uses Open in followed by that source's name.
 Only implemented providers appear; the source filter stays hidden when there is a single provider.
 
+Priority level is a text value in Details, a work-item list column, and a dashboard filter. On narrow screens it sits beside the item ID. Show the source's actual label without invented severity colors. Touch type is not a dashboard filter; touch activity remains available in item details.
+The project filter lists only projects with recorded touch activity.
+
+The desktop work-item table uses navy column headers with light text, matching section heading bars.
+Column headers stay below the workspace toolbar while scrolling through the list.
+Narrow screens retain the labeled item layout rather than a sticky table header.
+
 ## Elevation & Depth
 
 The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel.

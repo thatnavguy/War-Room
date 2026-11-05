@@ -118,10 +118,10 @@
         <div class="filters" aria-label="Filter work items">
           <label id="provider-filter" class="filter-field" hidden><span>Source</span><select id="f-provider" aria-label="Source"><option value="">All sources</option></select></label>
           <label class="filter-field"><span>Project</span><select id="f-project" aria-label="Project"><option value="">All projects</option></select></label>
+          <label class="filter-field"><span>Priority level</span><select id="f-priority" aria-label="Priority level"><option value="">All priority levels</option></select></label>
           <label class="filter-field"><span>Type</span><select id="f-type" aria-label="Type"><option value="">All types</option></select></label>
           <label class="filter-field"><span>State</span><select id="f-state" aria-label="State"><option value="">All states</option></select></label>
           <label class="filter-field iteration-filter"><span>Iteration</span><select id="f-iteration" aria-label="Iteration"><option value="">All iterations</option></select></label>
-          <label class="filter-field"><span>Touch type</span><select id="f-touch" aria-label="Touch type"><option value="">All touch types</option></select></label>
           <label class="check-filter"><input id="f-mine" type="checkbox"><span>Assigned to me</span></label>
           <label class="date-filter"><span>From</span><input id="f-from" type="date" aria-label="Changed from"></label>
           <label class="date-filter"><span>To</span><input id="f-to" type="date" aria-label="Changed to"></label>
@@ -129,9 +129,9 @@
         <div class="table-wrap">
           <table id="results">
             <thead>
-              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Iteration</th><th scope="col">Changed</th></tr>
+              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Iteration</th><th scope="col">Changed</th><th scope="col">Priority level</th></tr>
             </thead>
-            <tbody id="results-body"><tr><td class="table-message" colspan="8">Loading your work…</td></tr></tbody>
+            <tbody id="results-body"><tr><td class="table-message" colspan="9">Loading your work…</td></tr></tbody>
           </table>
         </div>
       </section>

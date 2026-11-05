@@ -89,6 +89,26 @@ test('only implemented providers are advertised and unsupported providers fail e
   assert.throws(() => getProvider('github'), /Unsupported provider/);
 });
 
+test('project filter lists only projects with recorded touches, including closed items', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const save = (externalId, project, isClosed = false) => store.saveItem({
+    provider: 'azure-devops', source_scope: 'https://dev.azure.com/example',
+    external_id: externalId, project, is_closed: isClosed,
+  });
+  save('1', 'Untouched');
+  const touched = save('2', 'Touched');
+  const closed = save('3', 'Previously touched', true);
+  const duplicate = save('4', 'Touched');
+  const empty = save('5', '');
+  for (const id of [touched, closed, duplicate, empty]) store.saveTouch(id, 'commented', '2026-01-01');
+  assert.deepEqual(store.getFilterValues().projects, ['Previously touched', 'Touched']);
+});
+
 test('history uses the external ID and refuses a different source scope', async (t) => {
   const oldScope = config.orgUrl;
   const oldUpdates = ado.getUpdates;
@@ -111,3 +131,41 @@ test('saving Azure DevOps settings preserves other providers and unrelated envir
   assert.match(result, /ADO_ORG_URL=new/);
   assert.match(result, /PROJECTS=Example/);
 });
+
+test('priority persists, filters touched open items, and does not list untouched values', (t) => {
+    const filename = fixture();
+    const store = createStore(filename);
+    t.after(() => {
+      store.close();
+      fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+    });
+    const base = { provider: 'azure-devops', source_scope: 'https://dev.azure.com/example' };
+    const id = store.saveItem({ ...base, external_id: '1', priority_level: 'P3 - Medium' });
+    store.saveTouch(id, 'assigned', '2026-01-01');
+    store.saveItem({ ...base, external_id: '2', priority_level: 'Untouched' });
+    assert.equal(store.getItem(id).priority_level, 'P3 - Medium');
+    assert.deepEqual(store.getFilterValues().priorities, ['P3 - Medium']);
+    assert.equal(store.queryItems({ priority: 'P3 - Medium' }).total, 1);
+    assert.equal(store.queryItems({ priority: 'P1 - Critical' }).total, 0);
+    assert.deepEqual(store.sourceItemIds(base.provider, base.source_scope), ['1']);
+  });
+
+test('Azure DevOps discovers custom priority and falls back to standard numeric priority', async (t) => {
+    const originalFetch = global.fetch;
+    t.after(() => { global.fetch = originalFetch; });
+    let fields;
+    global.fetch = async (url, options) => {
+      if (url.includes('/wit/fields?')) return { ok: true, json: async () => ({
+        value: [{ name: 'Priority Level', referenceName: 'Custom.PriorityLevel' }],
+      }) };
+      fields = JSON.parse(options.body).fields;
+      return { ok: true, json: async () => ({ value: [
+        { id: 1, fields: { 'Custom.PriorityLevel': 'P3 - Medium', 'Microsoft.VSTS.Common.Priority': 2 } },
+        { id: 2, fields: { 'Microsoft.VSTS.Common.Priority': 1 } },
+        { id: 3, fields: {} },
+      ] }) };
+    };
+    const items = await ado.getWorkItems([1, 2, 3]);
+    assert.ok(fields.includes('Custom.PriorityLevel'));
+    assert.deepEqual(items.map((item) => item.priority_level), ['P3 - Medium', '1', null]);
+  });

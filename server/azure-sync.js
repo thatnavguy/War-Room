@@ -27,6 +27,7 @@ function mapItem(wi) {
     id: wi.id,
     rev: wi.rev || 0,
     title: f['System.Title'] || '',
+    priority_level: wi.priority_level ?? null,
     type: f['System.WorkItemType'] || '',
     state: f['System.State'] || '',
     assigned_to: f['System.AssignedTo'] ? f['System.AssignedTo'].displayName : null,
@@ -81,6 +82,9 @@ async function runSync() {
     ]);
 
     const candidateIds = new Set([...everAssigned, ...created, ...changedByMe, ...changedSince]);
+    if (!db.getSyncState('priorityVersion')) {
+      for (const id of db.sourceItemIds('azure-devops', config.orgUrl)) candidateIds.add(Number(id));
+    }
     stats.candidates = candidateIds.size;
 
     const items = await ado.getWorkItems([...candidateIds]);
@@ -154,6 +158,7 @@ async function runSync() {
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
     db.setSyncState('lastSync', now);
+    db.setSyncState('priorityVersion', '1');
     stats.completedAt = now;
     return stats;
   } finally {

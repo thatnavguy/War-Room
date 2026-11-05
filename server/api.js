@@ -68,6 +68,7 @@ router.get('/items', (req, res) => {
     search: req.query.search || '',
     project: req.query.project || '',
     provider: req.query.provider || '',
+    priority: req.query.priority || '',
     type: req.query.type || '',
     state: req.query.state || '',
     iteration: req.query.iteration || '',

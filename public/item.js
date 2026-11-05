@@ -61,6 +61,7 @@ async function load() {
   const fields = [
     ['ID', item.external_id],
     ['Source', item.provider_label],
+    ['Priority level', item.priority_level],
     ['Type', item.type],
     ['State', item.state],
     ['Project', item.project],

@@ -54,7 +54,7 @@ function createStore(filename, legacyScope = '') {
   
   db.transaction(() => {
     const columns = new Set(db.prepare('PRAGMA table_info(work_items)').all().map((c) => c.name));
-    for (const col of ['description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments']) {
+    for (const col of ['description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level']) {
       if (!columns.has(col)) db.exec(`ALTER TABLE work_items ADD COLUMN ${col} TEXT`);
     }
     if (!columns.has('provider')) {
@@ -79,11 +79,11 @@ function createStore(filename, legacyScope = '') {
   INSERT INTO work_items (id, rev, title, type, state, assigned_to, created_by, created_date,
                           changed_by, changed_date, tags, area_path, iteration_path, project, url, synced_at,
                           description, acceptance_criteria, repro_steps, history, attachments,
-                          provider, source_scope, external_id, is_closed)
+                          provider, source_scope, external_id, is_closed, priority_level)
   VALUES (@id, @rev, @title, @type, @state, @assigned_to, @created_by, @created_date,
           @changed_by, @changed_date, @tags, @area_path, @iteration_path, @project, @url, @synced_at,
           @description, @acceptance_criteria, @repro_steps, @history, @attachments,
-          @provider, @source_scope, @external_id, @is_closed)
+          @provider, @source_scope, @external_id, @is_closed, @priority_level)
   ON CONFLICT(id) DO UPDATE SET
     rev = excluded.rev,
     title = excluded.title,
@@ -105,7 +105,8 @@ function createStore(filename, legacyScope = '') {
     repro_steps = excluded.repro_steps,
     history = excluded.history,
     attachments = excluded.attachments,
-    is_closed = excluded.is_closed
+    is_closed = excluded.is_closed,
+    priority_level = excluded.priority_level
   `);
   
   const upsertTouch = db.prepare(`
@@ -147,7 +148,7 @@ function createStore(filename, legacyScope = '') {
     // Local IDs remain stable; source IDs are only unique within their provider and scope.
     const id = existing ? existing.id : null;
     const defaults = Object.fromEntries(['assigned_to', 'created_by', 'created_date', 'changed_by', 'changed_date',
-      'tags', 'area_path', 'iteration_path', 'description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments']
+      'tags', 'area_path', 'iteration_path', 'description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level']
       .map((key) => [key, null]));
     const result = upsertItem.run({
       ...defaults, rev: 0, title: '', type: '', state: '', project: '', url: '', synced_at: new Date().toISOString(),
@@ -179,6 +180,7 @@ function createStore(filename, legacyScope = '') {
     }
     if (filters.project) { where.push('w.project = @project'); params.project = filters.project; }
     if (filters.provider) { where.push('w.provider = @provider'); params.provider = filters.provider; }
+    if (filters.priority) { where.push('w.priority_level = @priority'); params.priority = filters.priority; }
     if (filters.type) { where.push('w.type = @type'); params.type = filters.type; }
     if (filters.state) { where.push('w.state = @state'); params.state = filters.state; }
     if (filters.iteration) { where.push('w.iteration_path = @iteration'); params.iteration = filters.iteration; }
@@ -276,10 +278,21 @@ function createStore(filename, legacyScope = '') {
       db.prepare(`SELECT DISTINCT ${col} AS v FROM work_items WHERE ${col} IS NOT NULL AND ${col} != '' ORDER BY ${col}`)
         .all().map((r) => r.v);
     return {
-      projects: pick('project'),
+      projects: db.prepare(`
+        SELECT DISTINCT w.project AS v FROM work_items w
+        WHERE w.project != ''
+          AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
+        ORDER BY w.project
+      `).all().map((row) => row.v),
       types: pick('type'),
       states: db.prepare('SELECT DISTINCT state AS v FROM work_items WHERE is_closed = 0 ORDER BY state').all().map((r) => r.v),
       providers: pick('provider'),
+      priorities: db.prepare(`
+        SELECT DISTINCT w.priority_level AS v FROM work_items w
+        WHERE w.priority_level IS NOT NULL AND w.priority_level != ''
+          AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
+        ORDER BY w.priority_level
+      `).all().map((row) => row.v),
       iterations: pick('iteration_path'),
       touches: ['assigned', 'created', 'edited', 'commented'],
     };
@@ -287,6 +300,13 @@ function createStore(filename, legacyScope = '') {
   
   function knownItemIds() {
     return new Set(db.prepare('SELECT id FROM work_items').all().map((r) => r.id));
+  }
+
+  function sourceItemIds(provider, scope) {
+    return db.prepare(`
+      SELECT external_id FROM work_items w WHERE provider = ? AND source_scope = ?
+        AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
+    `).all(provider, scope).map((row) => row.external_id);
   }
   
   return {
@@ -299,6 +319,7 @@ function createStore(filename, legacyScope = '') {
     getSummary,
     getFilterValues,
     knownItemIds,
+    sourceItemIds,
     close: () => db.close(),
   };
 }

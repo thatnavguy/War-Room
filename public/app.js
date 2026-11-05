@@ -5,11 +5,11 @@ const $ = (sel) => document.querySelector(sel);
 const searchInput = $('#search');
 const filterEls = {
   provider: $('#f-provider'),
+  priority: $('#f-priority'),
   project: $('#f-project'),
   type: $('#f-type'),
   state: $('#f-state'),
   iteration: $('#f-iteration'),
-  touch: $('#f-touch'),
   from: $('#f-from'),
   to: $('#f-to'),
 };
@@ -79,7 +79,7 @@ async function loadFilters() {
   fill(filterEls.type, f.types, 'All types');
   fill(filterEls.state, f.states, 'All states');
   fill(filterEls.iteration, f.iterations, 'All iterations');
-  fill(filterEls.touch, f.touches, 'All touch types');
+  fill(filterEls.priority, f.priorities, 'All priority levels');
   filterEls.provider.replaceChildren(new Option('All sources', ''));
   for (const provider of providers) {
     filterEls.provider.appendChild(new Option(provider.label, provider.id));
@@ -116,7 +116,7 @@ async function loadItems() {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.className = 'table-message';
-    cell.colSpan = 8;
+    cell.colSpan = 9;
     cell.textContent = data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
     row.appendChild(cell);
     tbody.appendChild(row);
@@ -143,6 +143,7 @@ async function loadItems() {
       { label: 'Project', value: item.project },
       { label: 'Iteration', value: item.iteration_path ? item.iteration_path.split('\\').pop() : '–', title: item.iteration_path },
       { label: 'Changed', value: fmtDate(item.changed_date) },
+      { label: 'Priority level', value: item.priority_level },
     ];
 
     cells.forEach((cell, i) => {
@@ -278,7 +279,7 @@ function showLoadError(err) {
   const row = document.createElement('tr');
   const cell = document.createElement('td');
   cell.className = 'table-message table-error';
-  cell.colSpan = 8;
+  cell.colSpan = 9;
   cell.textContent = message;
   row.appendChild(cell);
   tableBody.appendChild(row);

@@ -29,7 +29,12 @@ The setup page writes to the same `.env` file.
   heaviest; later syncs only fetch what changed since the watermark.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
-- Filter by project, type, state, iteration, touch type, and date range.
+- Filter by project, type, state, iteration, priority level, and date range.
+  The project filter only lists projects with items you have touched, including previously touched closed items.
+- Priority level appears in item details, the work-item list, and its own dashboard filter.
+  Azure DevOps uses the custom **Priority Level** field when available, or its standard numeric **Priority** otherwise.
+  Sync once after upgrading to fetch priorities for previously tracked items. Missing priorities display as a dash.
+- On desktop, the navy table header stays visible as you scroll through the work-item list.
 - Open an item to see exactly why it's tracked (assigned / created / edited /
   commented) and jump to it in Azure DevOps.
 - Screenshots in descriptions and comments appear inline. The local server loads
