@@ -108,6 +108,32 @@
           </div>
           <button id="clear-filters" class="text-button clear-top" type="button">Clear filters</button>
         </div>
+        <div class="saved-view-row">
+          <label class="saved-view-select">
+            <span>Saved view</span>
+            <select id="saved-view-select" aria-label="Saved view">
+              <option value="">Choose a saved view</option>
+            </select>
+          </label>
+          <button id="save-view" class="button" type="button">Save current filters</button>
+          <button id="delete-view" class="text-button" type="button" disabled>Delete view</button>
+          <span id="saved-view-status" class="saved-view-status" role="status" aria-live="polite"></span>
+        </div>
+        <dialog id="save-view-dialog" class="save-view-dialog" aria-labelledby="save-view-title">
+          <form id="save-view-form" class="save-view-form">
+            <h2 id="save-view-title">Save this view</h2>
+            <p>Give these search and filter settings a name you can find later.</p>
+            <label class="form-field" for="saved-view-name">
+              <span>View name</span>
+              <input id="saved-view-name" name="name" type="text" maxlength="50" required autocomplete="off">
+            </label>
+            <p id="saved-view-error" class="saved-view-error" role="alert" hidden></p>
+            <div class="form-actions">
+              <button id="cancel-save-view" class="button" type="button">Cancel</button>
+              <button class="button button-primary" type="submit">Save view</button>
+            </div>
+          </form>
+        </dialog>
         <div class="search-row">
           <label class="search-field">
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.6" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 3.8 3.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>

@@ -16,6 +16,24 @@ const filterEls = {
 };
 const mineCheckbox = $('#f-mine');
 const FILTER_STORAGE_KEY = 'mission-hall.work-filters';
+const SAVED_VIEWS_KEY = 'mission-hall.saved-work-views';
+const savedViewSelect = $('#saved-view-select');
+const savedViewStatus = $('#saved-view-status');
+let savedViews = [];
+let currentSavedViewId = '';
+
+function currentFilterValues() {
+  const filters = { search: searchInput.value };
+  for (const [key, el] of Object.entries(filterEls)) filters[key] = el.value;
+  filters.mine = mineCheckbox.checked;
+  return filters;
+}
+
+function applyFilterValues(filters) {
+  searchInput.value = filters.search || '';
+  for (const [key, el] of Object.entries(filterEls)) el.value = filters[key] || '';
+  mineCheckbox.checked = Boolean(filters.mine);
+}
 
 function saveFilters() {
   const params = new URLSearchParams();
@@ -24,6 +42,7 @@ function saveFilters() {
     if (el.value) params.set(key, el.value);
   }
   if (mineCheckbox.checked) params.set('mine', '1');
+  if (currentSavedViewId) params.set('savedView', currentSavedViewId);
   sessionStorage.setItem(FILTER_STORAGE_KEY, params.toString());
 }
 
@@ -31,11 +50,54 @@ function restoreFilters() {
   const saved = sessionStorage.getItem(FILTER_STORAGE_KEY);
   if (saved === null) return;
   const params = new URLSearchParams(saved);
-  searchInput.value = params.get('search') || '';
-  for (const [key, el] of Object.entries(filterEls)) {
-    el.value = params.get(key) || '';
+  const filters = Object.fromEntries([...params.entries()]);
+  filters.mine = params.get('mine') === '1';
+  applyFilterValues(filters);
+  const savedViewId = params.get('savedView') || '';
+  currentSavedViewId = savedViews.some((view) => view.id === savedViewId) ? savedViewId : '';
+}
+
+function renderSavedViews() {
+  savedViewSelect.replaceChildren(new Option('Choose a saved view', ''));
+  for (const view of savedViews) {
+    savedViewSelect.appendChild(new Option(view.name, view.id));
   }
-  mineCheckbox.checked = params.get('mine') === '1';
+  savedViewSelect.value = currentSavedViewId;
+  $('#delete-view').disabled = !currentSavedViewId;
+}
+
+function setSavedViewStatus(message, isError = false) {
+  savedViewStatus.textContent = message;
+  savedViewStatus.classList.toggle('status-error', isError);
+}
+
+function persistSavedViews() {
+  try {
+    localStorage.setItem(SAVED_VIEWS_KEY, JSON.stringify(savedViews));
+    return true;
+  } catch {
+    setSavedViewStatus('Could not save views in this browser. Check its storage settings.', true);
+    return false;
+  }
+}
+
+function loadSavedViews() {
+  try {
+    const stored = localStorage.getItem(SAVED_VIEWS_KEY);
+    if (stored === null) return;
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed) || parsed.some((view) =>
+      !view || typeof view.id !== 'string' || typeof view.name !== 'string' ||
+      !view.filters || typeof view.filters !== 'object'
+    )) {
+      throw new Error('Saved views have an invalid format.');
+    }
+    savedViews = parsed;
+  } catch (error) {
+    setSavedViewStatus(error instanceof SyntaxError
+      ? 'Saved views could not be read. Clear this browser’s saved data to continue.'
+      : error.message || 'Saved views could not be loaded.', true);
+  }
 }
 
 let staleCutoff = null;
@@ -110,6 +172,7 @@ async function loadFilters() {
   }
   $('#provider-filter').hidden = providers.length < 2;
   restoreFilters();
+  renderSavedViews();
 }
 
 function fill(select, values, placeholder) {
@@ -285,17 +348,94 @@ function debounce(fn, ms) {
 
 const debouncedLoad = debounce(loadItems, 200);
 searchInput.addEventListener('input', () => {
+  currentSavedViewId = '';
+  renderSavedViews();
   saveFilters();
   debouncedLoad();
 });
-for (const el of Object.values(filterEls)) el.addEventListener('change', loadItems);
-mineCheckbox.addEventListener('change', loadItems);
+function onFilterChange() {
+  currentSavedViewId = '';
+  renderSavedViews();
+  loadItems().catch(showLoadError);
+}
+for (const el of Object.values(filterEls)) el.addEventListener('change', onFilterChange);
+mineCheckbox.addEventListener('change', onFilterChange);
+
+savedViewSelect.addEventListener('change', () => {
+  const view = savedViews.find((savedView) => savedView.id === savedViewSelect.value);
+  if (!view) {
+    currentSavedViewId = '';
+    renderSavedViews();
+    saveFilters();
+    setSavedViewStatus('Using current filters.');
+    return;
+  }
+  currentSavedViewId = view.id;
+  applyFilterValues(view.filters);
+  setSavedViewStatus(`Showing “${view.name}”.`);
+  renderSavedViews();
+  loadItems().catch(showLoadError);
+});
+
+$('#save-view').addEventListener('click', () => {
+  $('#saved-view-name').value = '';
+  $('#saved-view-error').hidden = true;
+  $('#save-view-dialog').showModal();
+  $('#saved-view-name').focus();
+});
+
+$('#cancel-save-view').addEventListener('click', () => $('#save-view-dialog').close());
+
+$('#save-view-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const name = $('#saved-view-name').value.trim();
+  const error = $('#saved-view-error');
+  if (!name) {
+    error.textContent = 'Enter a name for this view.';
+    error.hidden = false;
+    return;
+  }
+  if (savedViews.some((view) => view.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    error.textContent = 'A saved view with that name already exists.';
+    error.hidden = false;
+    return;
+  }
+  const view = { id: crypto.randomUUID(), name, filters: currentFilterValues() };
+  savedViews.push(view);
+  if (!persistSavedViews()) {
+    savedViews.pop();
+    return;
+  }
+  currentSavedViewId = view.id;
+  renderSavedViews();
+  saveFilters();
+  setSavedViewStatus(`Saved “${name}”.`);
+  $('#save-view-dialog').close();
+  $('#save-view').focus();
+});
+
+$('#delete-view').addEventListener('click', () => {
+  const view = savedViews.find((savedView) => savedView.id === currentSavedViewId);
+  if (!view || !window.confirm(`Delete the saved view “${view.name}”?`)) return;
+  const previousViews = savedViews;
+  savedViews = savedViews.filter((savedView) => savedView.id !== view.id);
+  if (!persistSavedViews()) {
+    savedViews = previousViews;
+    return;
+  }
+  currentSavedViewId = '';
+  renderSavedViews();
+  saveFilters();
+  setSavedViewStatus(`Deleted “${view.name}”.`);
+});
 
 $('#clear-filters').addEventListener('click', () => {
   searchInput.value = '';
   for (const el of Object.values(filterEls)) el.value = '';
   mineCheckbox.checked = false;
-  loadItems();
+  currentSavedViewId = '';
+  renderSavedViews();
+  loadItems().catch(showLoadError);
   searchInput.focus();
 });
 
@@ -311,7 +451,9 @@ document.addEventListener('keydown', (e) => {
     searchInput.focus();
   } else if (e.key === 'Escape' && document.activeElement === searchInput) {
     searchInput.value = '';
-    loadItems();
+    currentSavedViewId = '';
+    renderSavedViews();
+    loadItems().catch(showLoadError);
   }
 });
 
@@ -357,6 +499,8 @@ $('#sync-btn').addEventListener('click', async () => {
 });
 
 async function init() {
+  loadSavedViews();
+  renderSavedViews();
   const providerRes = await fetch('/api/providers');
   const providerData = await providerRes.json();
   if (!providerRes.ok) throw new Error(providerData.error || 'Could not load work sources.');

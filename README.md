@@ -5,6 +5,9 @@ currently assigned, previously assigned, created, edited, commented, or mentione
 
 ## Setup
 
+On Windows, double-click `start-dashboard.bat` to start the dashboard and open it
+in your browser. The first run installs the required packages.
+
 1. `npm install`
 2. `npm start` → http://localhost:4073
 3. Open the **setup page** (linked on the dashboard, or http://localhost:4073/setup.html)
@@ -30,6 +33,8 @@ The setup page writes to the same `.env` file.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
 - Filter by project, type, state, iteration, priority level, and date range.
+- Save a set of search and filter settings as a named view, then choose it to use those settings again.
+  Saved views stay in this browser. Select a view and choose **Delete view** to remove it.
 - Labels (Azure DevOps tags) appear beneath titles in the list and in item details.
   The **Label** filter lists labels from touched or mentioned work and matches a whole label, not part of its name.
   Project and iteration filters only list values from items you have touched or been mentioned on, including closed items.
