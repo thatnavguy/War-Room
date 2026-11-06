@@ -35,6 +35,7 @@ function dashboard(fetch) {
         return elements.get(selector);
       },
       createElement: element,
+      createElementNS: element,
       addEventListener() {},
     },
     fetch,

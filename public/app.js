@@ -254,6 +254,29 @@ async function loadItems() {
         a.textContent = item.external_id;
         a.title = `${item.provider_label} · ${item.source_scope}`;
         td.appendChild(a);
+        if (item.url && /^https?:\/\//i.test(item.url)) {
+          const source = document.createElement('a');
+          source.className = 'work-source-link';
+          source.href = item.url;
+          source.target = '_blank';
+          source.rel = 'noopener noreferrer';
+          source.title = `Open in ${item.provider_label} (new tab)`;
+          source.setAttribute('aria-label', `Open work item ${item.external_id} in ${item.provider_label} (new tab)`);
+          const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          icon.setAttribute('viewBox', '0 0 20 20');
+          icon.setAttribute('fill', 'none');
+          icon.setAttribute('aria-hidden', 'true');
+          const shape = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          shape.setAttribute('d', 'M11 3h6v6m0-6-9 9M8 4H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4');
+          shape.setAttribute('stroke', 'currentColor');
+          shape.setAttribute('stroke-width', '1.5');
+          shape.setAttribute('stroke-linecap', 'round');
+          shape.setAttribute('stroke-linejoin', 'round');
+          icon.appendChild(shape);
+          source.appendChild(icon);
+          source.addEventListener('keydown', (event) => event.stopPropagation());
+          td.appendChild(source);
+        }
       } else if (cell.kind === 'title') {
         td.className = 'title-cell';
         const a = document.createElement('a');

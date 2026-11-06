@@ -362,6 +362,9 @@ button:disabled { cursor: wait; opacity: .68; }
 #results td.id-cell { color: var(--accent); font-weight: 650; white-space: nowrap; }
 #results td.id-cell a { color: inherit; text-decoration: none; }
 #results td.id-cell a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.work-source-link { display: inline-flex; width: 30px; height: 32px; align-items: center; justify-content: center; margin-left: 4px; border-radius: 3px; vertical-align: middle; }
+.work-source-link:hover { background: var(--state-bg); }
+.work-source-link svg { width: 15px; height: 15px; }
 #results td.title-cell { min-width: 180px; }
 #results td.title-cell a { color: var(--ink); font-weight: 600; text-decoration: none; }
 #results td.title-cell a:hover { color: var(--accent-hover); text-decoration: underline; text-underline-offset: 3px; }

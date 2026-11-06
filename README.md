@@ -59,6 +59,8 @@ The setup page writes to the same `.env` file.
 - On desktop, the navy table header stays visible as you scroll through the work-item list.
 - Open an item to see exactly why it's tracked (assigned / created / edited /
   commented / mentioned) and jump to it in Azure DevOps.
+- Use the external-link icon beside a work-item ID to open Azure DevOps in a new tab.
+  The ID and title still open Mission Hall details. Your list filters stay unchanged.
 - Actual **@mentions of your identity** bring open items into My work after syncing.
   Plain text containing your name does not count as a mention.
   The first sync after this update scans comments on items changed within the configured lookback period.
