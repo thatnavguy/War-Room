@@ -95,6 +95,68 @@ test('needs attention applies the stale threshold to timestamps rather than date
   assert.equal(store.getSummary(30).stale, 1);
 });
 
+test('daily digest focus keeps open items due today, overdue, or changed today', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const scope = 'https://dev.azure.com/example';
+  const now = Date.now();
+  const ago = (days) => new Date(now - days * 86400000).toISOString();
+  const save = (externalId, overrides = {}) => {
+    const id = store.saveItem({
+      provider: 'azure-devops', source_scope: scope, external_id: externalId, is_closed: false, ...overrides,
+    });
+    store.saveTouch(id, 'assigned', ago(1));
+    return id;
+  };
+  save('due-today', { due_date: new Date(now).toISOString(), changed_date: ago(10) });
+  save('overdue', { due_date: ago(3), changed_date: ago(10) });
+  save('changed-today', { changed_date: new Date(now).toISOString() });
+  save('future-due', { due_date: new Date(now + 5 * 86400000).toISOString(), changed_date: ago(10) });
+  save('no-dates', { changed_date: ago(10) });
+  save('closed-overdue', { due_date: ago(3), changed_date: ago(10), is_closed: true });
+
+  const digest = store.queryItems({ focus: 'digest' });
+  assert.deepEqual(
+    digest.items.map((item) => item.external_id).sort(),
+    ['changed-today', 'due-today', 'overdue'],
+  );
+  assert.equal(store.queryItems({ focus: 'digest', project: 'missing' }).total, 0);
+  assert.equal(store.queryItems({ focus: '' }).total, 5);
+  assert.equal(store.queryItems({ focus: 'nonsense' }).total, 5);
+});
+
+test('needs attention focus keeps only stale open work assigned to the source profile', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const scope = 'https://dev.azure.com/example';
+  store.setSyncState('meDisplayName', 'Me', 'azure-devops', scope);
+  const ago = (days) => new Date(Date.now() - days * 86400000).toISOString();
+  const staleDays = config.staleDays;
+  const save = (externalId, overrides = {}) => {
+    const id = store.saveItem({
+      provider: 'azure-devops', source_scope: scope, external_id: externalId, is_closed: false, ...overrides,
+    });
+    store.saveTouch(id, 'assigned', ago(1));
+    return id;
+  };
+  save('stale-mine', { assigned_to: 'Me', changed_date: ago(staleDays + 5) });
+  save('recent-mine', { assigned_to: 'Me', changed_date: ago(1) });
+  save('stale-other', { assigned_to: 'Someone else', changed_date: ago(staleDays + 5) });
+  save('stale-closed', { assigned_to: 'Me', changed_date: ago(staleDays + 5), is_closed: true });
+
+  const attention = store.queryItems({ focus: 'attention' });
+  assert.deepEqual(attention.items.map((item) => item.external_id), ['stale-mine']);
+  assert.equal(store.queryItems({ focus: 'attention', state: 'missing' }).total, 0);
+});
+
 test('source numbers cannot collide across providers or repositories', (t) => {
   const filename = fixture();
   const store = createStore(filename);

@@ -24,8 +24,6 @@ colors:
   state-ink: "#344f63"
   error: "#a83e30"
   focus: "#3e85b8"
-  board-hover: "#1b334b"
-  board-rule: "#40556a"
   notice-rule: "#edac97"
   notice-ink: "#68291f"
   notice-support: "#80392f"
@@ -154,33 +152,31 @@ components:
 
 Mission Hall helps its owner scan personally relevant Azure DevOps work and spot items that have gone unchanged. The screen keeps familiar navigation, search, filters, and a complete work-item table; the visual direction borrows a departure board's disciplined columns, tabular figures, and clear signal colors without turning the interface into a flight simulator.
 
-The signature move is the dark attention board: age, work item, project, state, and last-changed date line up in a stable row. Amber makes elapsed time easy to find, while a restrained red signal marks stale work. These are real elapsed days and changed dates, never due dates or schedules that the data does not contain.
+The signature move is the focused work list: preset views cut the full table down to what needs action today, and stale rows carry a restrained red signal. Amber marks work due today and the user's own name, while red marks stale or overdue work. These are real elapsed days and recorded dates, never invented schedules.
 
 **Key Characteristics:**
-- Deep navy navigation and attention board, framed by a cool, light workspace.
+- Deep navy navigation and table headers, framed by a cool, light workspace.
 - Crisp aligned columns and tabular figures for quick comparison.
 - Red and amber carry attention meaning; blue marks interaction.
 
 ## Colors
 
-Deep navy anchors the shell and the attention panel; cool slate neutrals support the wider workspace; signal red and amber are reserved for stale status and age.
+Deep navy anchors the shell and table headers; cool slate neutrals support the wider workspace; signal red and amber are reserved for stale and due-soon status.
 
 ### Primary
-- **Departure Navy** (`#10243a`): Navigation rail, primary actions, and the attention-board surface.
+- **Departure Navy** (`#10243a`): Navigation rail, primary actions, and table header surfaces.
 - **Signal Blue** (`#3e85b8`): Focus treatment and connection indicator.
 - **Work Blue** (`#1d5274`): Links and interactive text on light surfaces.
 
 ### Secondary
-- **Signal Red** (`#e14c3c`): Small stale-work marker and attention count on the board.
-- **Elapsed Amber** (`#e6b34a`): Time unchanged and the brand mark.
+- **Signal Red** (`#e14c3c`): Stale-work marker, the need-attention count, and overdue dates.
+- **Elapsed Amber** (`#e6b34a`): Due-today dates, the user's own name, and the brand mark.
 
 ### Neutral
 - **Cool Work Surface** (`#f4f6f7`): Main background.
 - **White Surface** (`#ffffff`): Forms, fields, and content surfaces.
 - **Slate Ink** (`#162636`): Main text and headings.
 - **Muted Slate** (`#647586`): Supporting text and labels.
-- **Board Secondary** (`#b9c8d6`): Supporting information on navy.
-- **Board Rule** (`#40556a`): Dividers on navy.
 - **Fine Rule** (`#d9e0e4`): Rows and section separators.
 - **Strong Rule** (`#c8d1d8`): Structural borders and control outlines.
 
@@ -209,7 +205,7 @@ Deep navy anchors the shell and the attention panel; cool slate neutrals support
 
 The wide layout uses a fixed 224px navigation rail and a centered content region. At medium desktop widths the rail narrows to 196px. At 960px and below, navigation becomes a horizontal top strip, the dashboard table becomes labeled work-item rows, and filters wrap to available space. At 420px and below, horizontal padding and navigation gaps tighten further.
 
-The dashboard order is heading and sync action, the needs-attention board, compact workload counts, then search, filters, and all touched work. The attention board aligns age, item, project, state, and last-changed date. On narrow screens each row becomes a readable stacked record while retaining elapsed time as its own signal. Optional breakdowns remain collapsed.
+The dashboard order is heading and sync action, compact workload counts, then search, filters, and all touched work. Attention-worthy work is reached through preset views rather than a separate board: Daily digest and Needs attention sit at the top of the saved-view control and filter the work list in place. The stale workload count acts as a shortcut to the Needs attention preset. Optional breakdowns remain collapsed.
 
 Work-item details use the full workspace width for field values, descriptions, acceptance criteria, repro steps, and revision history. Rich text wraps within that space without a separate narrow-column limit.
 
@@ -226,9 +222,9 @@ The desktop work-item table uses navy column headers with light text, matching s
 Column headers stay below the workspace toolbar while scrolling through the list.
 Narrow screens retain the labeled item layout rather than a sticky table header.
 
-Needs attention includes only stale open items currently assigned to the user. Show five rows initially.
-View all expands the board in place; Show fewer collapses it without changing work filters.
-Priority level appears as a board column on desktop and a labeled line on narrow screens.
+The Needs attention preset includes only stale open items currently assigned to the user; the Daily digest preset includes open items due today, overdue, or changed today.
+Presets set the Focus filter and behave like saved views, but they cannot be deleted and their names are reserved.
+Choosing a preset replaces the current filters; changing any filter afterwards deselects it.
 
 The work list replaces the Iteration column with Due date. Use recorded source dates only.
 Due today uses amber with navy text; overdue uses the pale red surface with dark red text.
