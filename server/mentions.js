@@ -24,4 +24,13 @@ function latestMention(updates, identityId) {
   return dates.sort().pop() || null;
 }
 
-module.exports = { mentionId, mentionsMe, latestMention };
+function latestCommentMentionsMe(updates, identityId) {
+  const comments = (updates || []).filter((update) =>
+    String(update.fields?.['System.History']?.newValue || '').trim());
+  comments.sort((a, b) => Number(a.rev ?? a.id ?? 0) - Number(b.rev ?? b.id ?? 0) ||
+    Date.parse(a.fields?.['System.ChangedDate']?.newValue || a.revisedDate) -
+    Date.parse(b.fields?.['System.ChangedDate']?.newValue || b.revisedDate));
+  return mentionsMe(comments.at(-1)?.fields?.['System.History']?.newValue, identityId);
+}
+
+module.exports = { mentionId, mentionsMe, latestMention, latestCommentMentionsMe };

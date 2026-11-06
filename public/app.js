@@ -4,6 +4,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const searchInput = $('#search');
 const filterEls = {
+  hidden: $('#f-hidden'),
   provider: $('#f-provider'),
   priority: $('#f-priority'),
   label: $('#f-label'),
@@ -214,7 +215,7 @@ async function loadItems() {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.className = 'table-message';
-    cell.colSpan = 9;
+    cell.colSpan = 10;
     cell.textContent = data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
     row.appendChild(cell);
     tbody.appendChild(row);
@@ -325,13 +326,88 @@ async function loadItems() {
       tr.appendChild(td);
     });
 
+    const actions = document.createElement('td');
+    actions.className = 'work-actions';
+    const visibilityButton = document.createElement('button');
+    visibilityButton.className = 'work-visibility-button';
+    visibilityButton.type = 'button';
+    const restoring = Boolean(item.is_hidden);
+    const protectedItem = !restoring && Boolean(item.visibility_required);
+    const explanation = protectedItem
+      ? 'Keep visible: assigned to you or the latest comment @mentions you.'
+      : restoring ? 'Restore to My work' : 'Hide from My work';
+    visibilityButton.title = explanation;
+    visibilityButton.setAttribute('aria-label', `${restoring ? 'Restore' : 'Hide'} work item ${item.external_id}${protectedItem ? `. ${explanation}` : ''}`);
+    visibilityButton.setAttribute('aria-disabled', String(protectedItem));
+    if (restoring) {
+      visibilityButton.textContent = 'Restore';
+    } else {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 20 20');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M3 3l14 14M7.5 4.5A9 9 0 0 1 10 4c4 0 7 6 7 6a15 15 0 0 1-2 2.8M12 15.5a9 9 0 0 1-2 .5c-4 0-7-6-7-6a15 15 0 0 1 2-2.8M8 8a2.8 2.8 0 0 0 4 4');
+      path.setAttribute('stroke', 'currentColor');
+      path.setAttribute('stroke-width', '1.5');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(path);
+      visibilityButton.appendChild(svg);
+    }
+    visibilityButton.addEventListener('keydown', (event) => event.stopPropagation());
+    visibilityButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (protectedItem) return;
+      changeVisibility(item, !restoring, visibilityButton);
+    });
+    actions.appendChild(visibilityButton);
+    tr.appendChild(actions);
+
     tr.addEventListener('click', (e) => {
-      if (!e.target.closest('a')) location.href = `/item.html?id=${item.id}`;
+      if (!e.target.closest('a, button')) location.href = `/item.html?id=${item.id}`;
     });
     tr.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') location.href = `/item.html?id=${item.id}`;
     });
     tbody.appendChild(tr);
+  }
+}
+
+async function changeVisibility(item, hidden, button) {
+  button.disabled = true;
+  const status = $('#visibility-status');
+  try {
+    const response = await fetch(`/api/items/${item.id}/visibility`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hidden }),
+    });
+    if (!response.headers.get('content-type')?.includes('application/json')) {
+      throw new Error(response.status === 404
+        ? 'Restart the dashboard to enable Hide and Restore, then sync once.'
+        : `Could not change item visibility (HTTP ${response.status}). Try again.`);
+    }
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Could not change item visibility.');
+    status.classList.remove('inline-error');
+    status.textContent = hidden ? `Work item ${item.external_id} hidden.` : `Work item ${item.external_id} restored.`;
+    if (hidden) {
+      const undo = document.createElement('button');
+      undo.type = 'button';
+      undo.className = 'text-button visibility-undo';
+      undo.textContent = 'Undo';
+      undo.addEventListener('click', () => changeVisibility(item, false, undo));
+      status.appendChild(undo);
+    }
+    await loadSummary();
+    await Promise.all([loadItems(), loadAttention()]);
+    if (hidden) status.querySelector('button')?.focus();
+    else $('#f-hidden').focus();
+  } catch (error) {
+    status.textContent = error.message || 'Could not change item visibility. Try again.';
+    status.classList.add('inline-error');
+    button.disabled = false;
   }
 }
 
@@ -532,7 +608,7 @@ function showLoadError(err) {
   const row = document.createElement('tr');
   const cell = document.createElement('td');
   cell.className = 'table-message table-error';
-  cell.colSpan = 9;
+  cell.colSpan = 10;
   cell.textContent = message;
   row.appendChild(cell);
   tableBody.appendChild(row);

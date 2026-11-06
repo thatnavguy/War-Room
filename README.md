@@ -9,6 +9,11 @@ On Windows, double-click `start-dashboard.bat` to start the dashboard and open i
 in your browser. The first run installs the required packages.
 If startup fails, check `data\dashboard-error.log` and `data\dashboard-output.log` for details.
 
+For a desktop shortcut, double-click `add-desktop-shortcut.bat` once.
+Then use **Mission Hall** on your desktop to start the dashboard.
+The installer uses your Windows desktop folder, including desktops managed by OneDrive.
+Keep this project folder in place. If you move it, remove the old shortcut and run the installer again.
+
 1. `npm install`
 2. `npm start` → http://localhost:4073
 3. Open the **setup page** (linked on the dashboard, or http://localhost:4073/setup.html)
@@ -61,6 +66,14 @@ The setup page writes to the same `.env` file.
   commented / mentioned) and jump to it in Azure DevOps.
 - Use the external-link icon beside a work-item ID to open Azure DevOps in a new tab.
   The ID and title still open Mission Hall details. Your list filters stay unchanged.
+- Choose the eye-off **Hide** icon at the right edge of a row to remove an unrelated item from My work.
+  The confirmation includes **Undo** to bring it straight back.
+  Hide preferences are saved in the local database. Azure DevOps is not changed.
+  Use **Visibility: Hidden items** and **Restore** to bring an item back.
+  Items assigned to you or whose latest comment explicitly @mentions you cannot be hidden.
+  These conditions override an earlier hide preference after syncing.
+  If neither condition applies later, the hide preference takes effect again.
+  Restart the dashboard and sync once after upgrading to check the latest comments on tracked items.
 - Actual **@mentions of your identity** bring open items into My work after syncing.
   Plain text containing your name does not count as a mention.
   The first sync after this update scans comments on items changed within the configured lookback period.

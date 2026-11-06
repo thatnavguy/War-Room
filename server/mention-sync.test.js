@@ -14,6 +14,7 @@ test('mention-only items enter the list and failed scans retry backfill without 
   const originalAdo = { ...ado };
   const state = new Map([['lastSync', '2026-11-01T00:00:00Z'], ['priorityVersion', '1']]);
   const touches = [];
+  const latestComments = [];
   let queriedDate;
   let fail = false;
   const store = {
@@ -22,6 +23,7 @@ test('mention-only items enter the list and failed scans retry backfill without 
     saveItem: () => 100,
     saveTouch: (id, type, date) => touches.push({ id, type, date }),
     sourceItemIds: () => [],
+    setLatestCommentMention: (id, identityId, mentioned) => latestComments.push({ id, identityId, mentioned }),
   };
   require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: store };
   delete require.cache[syncPath];
@@ -55,13 +57,17 @@ test('mention-only items enter the list and failed scans retry backfill without 
   assert.ok(queriedDate < before.slice(0, 10));
   assert.deepEqual(touches, [{ id: 100, type: 'mentioned', date: '2026-10-01T10:00:00Z' }]);
   assert.equal(state.get('mentionsVersion'), `1:${me}`);
+  assert.equal(state.get('latestCommentsVersion'), `1:${me}`);
+  assert.deepEqual(latestComments, [{ id: 100, identityId: me, mentioned: true }]);
   state.delete('mentionsVersion');
   const successfulCheckpoint = state.get('lastSync');
   fail = true;
+  state.delete('latestCommentsVersion');
   const failed = await sync.runSync();
   assert.equal(failed.errors.length, 1);
   assert.equal(state.get('lastSync'), successfulCheckpoint);
   assert.ok(!state.has('mentionsVersion'));
+  assert.ok(!state.has('latestCommentsVersion'));
 });
 
 test('due-date upgrade refreshes existing tracked items once and retries failed saves', async (t) => {
@@ -88,6 +94,7 @@ test('due-date upgrade refreshes existing tracked items once and retries failed 
         saved.push(item);
         return 100;
       },
+      setLatestCommentMention() {},
     },
   };
   delete require.cache[syncPath];
@@ -98,6 +105,7 @@ test('due-date upgrade refreshes existing tracked items once and retries failed 
     queryCreatedByMe: async () => [],
     queryChangedByMe: async () => [],
     queryChangedSince: async () => [],
+    getUpdates: async () => [],
     getWorkItems: async (ids) => {
       requested.push(ids);
       return ids.map((id) => ({

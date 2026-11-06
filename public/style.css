@@ -365,6 +365,16 @@ button:disabled { cursor: wait; opacity: .68; }
 .work-source-link { display: inline-flex; width: 30px; height: 32px; align-items: center; justify-content: center; margin-left: 4px; border-radius: 3px; vertical-align: middle; }
 .work-source-link:hover { background: var(--state-bg); }
 .work-source-link svg { width: 15px; height: 15px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.work-actions-heading { width: 62px; }
+#results td.work-actions { text-align: right; white-space: nowrap; }
+.work-visibility-button { display: inline-flex; min-width: 36px; min-height: 36px; align-items: center; justify-content: center; padding: 0 7px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--accent); font-size: 12px; }
+.work-visibility-button svg { width: 18px; height: 18px; }
+.work-visibility-button:hover { background: var(--surface); border-color: var(--line-strong); }
+.work-visibility-button[aria-disabled="true"] { color: var(--muted); cursor: not-allowed; }
+.visibility-undo { margin-left: 12px; min-height: 36px; }
+.visibility-status { margin: 0 0 10px; color: var(--accent); font-size: 13px; }
+.visibility-status:empty { display: none; }
 #results td.title-cell { min-width: 180px; }
 #results td.title-cell a { color: var(--ink); font-weight: 600; text-decoration: none; }
 #results td.title-cell a:hover { color: var(--accent-hover); text-decoration: underline; text-underline-offset: 3px; }
@@ -551,6 +561,8 @@ button:disabled { cursor: wait; opacity: .68; }
   #results td:nth-child(7) { grid-column: 1; }
   #results td:nth-child(8) { grid-column: 2; }
   #results td:nth-child(9) { grid-column: 2; grid-row: 1; }
+  #results td.work-actions { grid-column: 2; justify-self: end; padding: 4px; }
+  #results td.work-actions::before { display: none; }
   #results td.table-message { display: block; }
   .workspace-footer { margin-top: 20px; }
   .subpage-heading { flex-direction: column; gap: 12px; }

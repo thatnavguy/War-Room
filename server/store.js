@@ -46,6 +46,15 @@ function createStore(filename, legacyScope = '') {
     key   TEXT PRIMARY KEY,
     value TEXT
   );
+  CREATE TABLE IF NOT EXISTS hidden_items (
+    work_item_id INTEGER PRIMARY KEY,
+    hidden_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS latest_comment_mentions (
+    work_item_id INTEGER PRIMARY KEY,
+    identity_id TEXT NOT NULL,
+    mentions_me INTEGER NOT NULL
+  );
   
   CREATE INDEX IF NOT EXISTS idx_items_state     ON work_items(state);
   CREATE INDEX IF NOT EXISTS idx_items_type      ON work_items(type);
@@ -182,9 +191,37 @@ function createStore(filename, legacyScope = '') {
   }
   
   const TOUCH_JOIN = 'JOIN touches t ON t.work_item_id = w.id';
+  const REQUIRED_ITEM = `(EXISTS (
+    SELECT 1 FROM sync_state s
+    WHERE s.key = json_array(w.provider, w.source_scope, 'meDisplayName')
+      AND s.value != '' AND s.value = w.assigned_to
+  ) OR EXISTS (
+    SELECT 1 FROM latest_comment_mentions m JOIN sync_state s
+      ON s.key = json_array(w.provider, w.source_scope, 'meId')
+    WHERE m.work_item_id = w.id AND m.mentions_me = 1 AND lower(s.value) = m.identity_id
+  ))`;
+  const HIDDEN_ITEM = 'EXISTS (SELECT 1 FROM hidden_items h WHERE h.work_item_id = w.id)';
+  const VISIBLE_ITEM = `(NOT ${HIDDEN_ITEM} OR ${REQUIRED_ITEM})`;
+
+  function setLatestCommentMention(id, identityId, mentionsMe) {
+    db.prepare(`INSERT INTO latest_comment_mentions VALUES (?, ?, ?)
+      ON CONFLICT(work_item_id) DO UPDATE SET identity_id = excluded.identity_id,
+      mentions_me = excluded.mentions_me`).run(id, identityId.toLowerCase(), Number(mentionsMe));
+  }
+
+  function setItemHidden(id, hidden) {
+    const item = db.prepare(`SELECT w.id, ${REQUIRED_ITEM} AS required FROM work_items w WHERE w.id = ?`).get(id);
+    if (!item) return { error: 'Work item not found.', status: 404 };
+    if (hidden && item.required) {
+      return { error: 'This item cannot be hidden while assigned to you or when its latest comment @mentions you.', status: 409 };
+    }
+    if (hidden) db.prepare('INSERT OR REPLACE INTO hidden_items VALUES (?, ?)').run(id, new Date().toISOString());
+    else db.prepare('DELETE FROM hidden_items WHERE work_item_id = ?').run(id);
+    return { hidden };
+  }
   
   function buildItemQuery(filters) {
-    const where = ['w.is_closed = 0'];
+    const where = ['w.is_closed = 0', filters.hiddenOnly ? `${HIDDEN_ITEM} AND NOT ${REQUIRED_ITEM}` : VISIBLE_ITEM];
     const params = {};
   
     if (filters.search) {
@@ -229,7 +266,7 @@ function createStore(filename, legacyScope = '') {
     const limit = Math.min(filters.limit || 200, 500);
     const offset = filters.offset || 0;
     const rows = db.prepare(`
-      SELECT DISTINCT w.* FROM work_items w ${TOUCH_JOIN}
+      SELECT DISTINCT w.*, ${HIDDEN_ITEM} AS is_hidden, ${REQUIRED_ITEM} AS visibility_required FROM work_items w ${TOUCH_JOIN}
       WHERE ${where}
       ORDER BY w.changed_date DESC
       LIMIT ${limit} OFFSET ${offset}
@@ -255,12 +292,12 @@ function createStore(filename, legacyScope = '') {
   
     const open = one(`
       SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
-      WHERE w.is_closed = 0
+      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM}
     `).n;
   
     const recentlyUpdated = one(`
       SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
-      WHERE w.is_closed = 0
+      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM}
         AND w.changed_date >= datetime('now', '-7 days')
     `).n;
   
@@ -273,7 +310,7 @@ function createStore(filename, legacyScope = '') {
   
     const group = (col) => all(`
       SELECT w.${col} AS key, COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
-      WHERE w.is_closed = 0
+      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM}
       GROUP BY w.${col} ORDER BY n DESC
     `);
   
@@ -350,6 +387,8 @@ function createStore(filename, legacyScope = '') {
     getFilterValues,
     knownItemIds,
     sourceItemIds,
+    setItemHidden,
+    setLatestCommentMention,
     close: () => db.close(),
   };
 }

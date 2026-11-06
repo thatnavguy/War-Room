@@ -3,7 +3,7 @@
 const config = require('./config');
 const ado = require('./ado');
 const db = require('./db');
-const { latestMention } = require('./mentions');
+const { latestMention, latestCommentMentionsMe } = require('./mentions');
 
 let running = false;
 
@@ -72,6 +72,7 @@ async function runSync() {
 
     const lastSync = db.getSyncState('lastSync');
     const mentionsBackfill = db.getSyncState('mentionsVersion') !== `1:${me.id}`;
+    const latestCommentsBackfill = db.getSyncState('latestCommentsVersion') !== `1:${me.id}`;
     const sinceIso = lastSync && !mentionsBackfill
       ? lastSync
       : new Date(Date.now() - config.lookbackDays * 86400000).toISOString();
@@ -87,7 +88,7 @@ async function runSync() {
     ]);
 
     const candidateIds = new Set([...everAssigned, ...created, ...changedByMe, ...changedSince]);
-    if (!db.getSyncState('priorityVersion') || !db.getSyncState('dueDateVersion')) {
+    if (!db.getSyncState('priorityVersion') || !db.getSyncState('dueDateVersion') || latestCommentsBackfill) {
       for (const id of db.sourceItemIds('azure-devops', config.orgUrl)) candidateIds.add(Number(id));
     }
     stats.candidates = candidateIds.size;
@@ -126,7 +127,7 @@ async function runSync() {
     // On first sync, bound the deep scan to candidates we already discovered
     // plus items changed within the lookback window, to keep the run bounded.
     const deepScanIds = items
-      .filter((wi) => changedSinceSet.has(wi.id))
+      .filter((wi) => changedSinceSet.has(wi.id) || latestCommentsBackfill)
       .map((wi) => ({ externalId: wi.id, localId: localIds.get(wi.id) }));
 
     const CONCURRENCY = 10;
@@ -138,6 +139,7 @@ async function runSync() {
           // Comments are not a separate endpoint on this API surface; a comment
           // shows up as a revision that changes System.History.
           const updates = await ado.getUpdates(id);
+          db.setLatestCommentMention(localId, me.id, latestCommentMentionsMe(updates, me.id));
           const mine = updates.filter(
             (u) => u.revisedBy && isMe(u.revisedBy, me) && u.fields && Object.keys(u.fields).length > 0
           );
@@ -172,6 +174,7 @@ async function runSync() {
       db.setSyncState('priorityVersion', '1');
       db.setSyncState('dueDateVersion', '1');
       db.setSyncState('mentionsVersion', `1:${me.id}`);
+      db.setSyncState('latestCommentsVersion', `1:${me.id}`);
     }
     stats.completedAt = now;
     return stats;

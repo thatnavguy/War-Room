@@ -142,6 +142,7 @@
           </label>
         </div>
         <div class="filters" aria-label="Filter work items">
+          <label class="filter-field"><span>Visibility</span><select id="f-hidden" aria-label="Visibility"><option value="">My work</option><option value="1">Hidden items</option></select></label>
           <label id="provider-filter" class="filter-field" hidden><span>Source</span><select id="f-provider" aria-label="Source"><option value="">All sources</option></select></label>
           <label class="filter-field"><span>Project</span><select id="f-project" aria-label="Project"><option value="">All projects</option></select></label>
           <label class="filter-field"><span>Priority level</span><select id="f-priority" aria-label="Priority level"><option value="">All priority levels</option></select></label>
@@ -150,12 +151,13 @@
           <label class="filter-field"><span>State</span><select id="f-state" aria-label="State"><option value="">All states</option></select></label>
           <label class="check-filter"><input id="f-mine" type="checkbox"><span>Assigned to me</span></label>
         </div>
+        <p id="visibility-status" class="visibility-status" role="status" aria-live="polite"></p>
         <div class="table-wrap">
           <table id="results">
             <thead>
-              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Due date</th><th scope="col">Changed</th><th scope="col">Priority level</th></tr>
+              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Due date</th><th scope="col">Changed</th><th scope="col">Priority level</th><th scope="col" class="work-actions-heading"><span class="visually-hidden">Actions</span></th></tr>
             </thead>
-            <tbody id="results-body"><tr><td class="table-message" colspan="9">Loading your work…</td></tr></tbody>
+            <tbody id="results-body"><tr><td class="table-message" colspan="10">Loading your work…</td></tr></tbody>
           </table>
         </div>
       </section>

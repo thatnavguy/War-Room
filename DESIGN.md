@@ -235,6 +235,11 @@ Due today uses amber with navy text; overdue uses the pale red surface with dark
 Include the words Due today or Overdue, so color is not the only signal. Future dates stay neutral; missing dates use a dash.
 Compare calendar days in the user's local time zone. Iteration and From/To filters are not shown or restored from old views.
 
+Work rows have an eye-off Hide icon at their right edge, or a text Restore action when a hide preference exists.
+Keep unavailable Hide actions keyboard-focusable with aria-disabled and an explanatory tooltip.
+After hiding, show a compact inline confirmation with Undo and move focus to it.
+The Visibility filter switches between My work and Hidden items. Local visibility changes show an inline status or error.
+
 Related links uses the shared navy section heading and a sticky-menu shortcut. Group links by their actual relation type,
 with link text, supplied update dates, and comments. Unresolved artifact links clearly point back to Azure DevOps.
 

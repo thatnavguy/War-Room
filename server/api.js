@@ -75,6 +75,7 @@ router.get('/items', (req, res) => {
     iteration: req.query.iteration || '',
     touch: req.query.touch || '',
     assignedToMe: req.query.mine === '1',
+    hiddenOnly: req.query.hidden === '1',
     from: req.query.from || '',
     to: req.query.to || '',
     limit: parseInt(req.query.limit, 10) || 200,
@@ -82,6 +83,15 @@ router.get('/items', (req, res) => {
   };
   const result = db.queryItems(filters);
   res.json({ ...result, items: result.items.map(describeItem) });
+});
+
+router.post('/items/:id/visibility', (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0 || typeof req.body?.hidden !== 'boolean') {
+    return res.status(400).json({ error: 'A valid work-item ID and hidden boolean are required.' });
+  }
+  const result = db.setItemHidden(id, req.body.hidden);
+  res.status(result.status || 200).json(result);
 });
 
 router.get('/items/:id', (req, res) => {
