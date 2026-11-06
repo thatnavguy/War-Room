@@ -314,7 +314,7 @@ function createStore(filename, legacyScope = '') {
       GROUP BY w.${col} ORDER BY n DESC
     `);
   
-    const lastSync = getSyncState('lastSync');
+    const lastSync = latestSyncWatermark();
     const totalTracked = one('SELECT COUNT(*) AS n FROM work_items').n;
   
     return {
@@ -375,7 +375,31 @@ function createStore(filename, legacyScope = '') {
         AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
     `).all(provider, scope).map((row) => row.external_id);
   }
-  
+
+  function sourceScopes(provider) {
+    return db.prepare('SELECT DISTINCT source_scope AS scope FROM work_items WHERE provider = ? ORDER BY source_scope')
+      .all(provider).map((row) => row.scope);
+  }
+
+  function findItemId(provider, scope, externalId) {
+    const row = db.prepare('SELECT id FROM work_items WHERE provider = ? AND source_scope = ? AND external_id = ?')
+      .get(provider, scope, String(externalId));
+    return row ? row.id : null;
+  }
+
+  function identities() {
+    return db.prepare('SELECT key, value FROM sync_state').all()
+      .filter((row) => row.key.startsWith('['))
+      .map((row) => ({ parts: JSON.parse(row.key), value: row.value }))
+      .filter((row) => row.parts[2] === 'meDisplayName' && row.value)
+      .map((row) => ({ provider: row.parts[0], source_scope: row.parts[1], displayName: row.value }));
+  }
+
+  function latestSyncWatermark() {
+    const rows = db.prepare("SELECT value FROM sync_state WHERE key LIKE '%\"lastSync\"]'").all();
+    return rows.map((row) => row.value).filter(Boolean).sort().pop() || null;
+  }
+
   return {
     saveItem,
     saveTouch,
@@ -387,6 +411,10 @@ function createStore(filename, legacyScope = '') {
     getFilterValues,
     knownItemIds,
     sourceItemIds,
+    sourceScopes,
+    findItemId,
+    identities,
+    latestSyncWatermark,
     setItemHidden,
     setLatestCommentMention,
     close: () => db.close(),

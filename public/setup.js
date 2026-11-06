@@ -4,53 +4,83 @@ const $ = (sel) => document.querySelector(sel);
 
 async function load() {
   const cfg = await fetch('/api/config').then((r) => r.json());
-  $('#org-url').value = cfg.orgUrl || '';
-  $('#projects').value = cfg.projects || '';
+
+  $('#org-url').value = cfg.azureDevOps.orgUrl || '';
+  $('#projects').value = cfg.azureDevOps.projects || '';
+  $('#pat-hint').textContent = cfg.azureDevOps.patSet
+    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
+    : 'No token saved yet.';
+  $('#ado-status').textContent = cfg.azureDevOps.configured ? '· Connected' : '· Not connected';
+
+  $('#gh-repos').value = cfg.github.repos || '';
+  $('#gh-host').value = cfg.github.host || 'github.com';
+  $('#gh-token-hint').textContent = cfg.github.tokenSet
+    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
+    : 'No token saved yet.';
+  $('#github-status').textContent = cfg.github.configured ? '· Connected' : '· Not connected';
+
   $('#port').value = cfg.port;
   $('#stale-days').value = cfg.staleDays;
   $('#lookback-days').value = cfg.lookbackDays;
-  $('#pat-hint').textContent = cfg.patSet
-    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
-    : 'No token saved yet.';
 }
 
-$('#setup-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = $('#save-btn');
-  const status = $('#save-status');
-  btn.disabled = true;
-  status.textContent = 'Saving…';
-  status.className = 'muted';
-  try {
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        orgUrl: $('#org-url').value,
-        pat: $('#pat').value,
-        projects: $('#projects').value,
-        port: parseInt($('#port').value, 10),
-        staleDays: parseInt($('#stale-days').value, 10),
-        lookbackDays: parseInt($('#lookback-days').value, 10),
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Save failed');
-    status.textContent = data.portChanged
-      ? `Saved. Port changed to ${data.port} — restart the server to apply.`
-      : 'Saved.';
-    status.className = 'muted status-success';
-    $('#pat').value = '';
-    await load();
-  } catch (err) {
-    status.textContent = err.message;
-    status.className = 'muted status-error';
-  } finally {
-    btn.disabled = false;
-  }
-});
+function wireForm(formSel, statusSel, buildBody) {
+  $(formSel).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $(formSel).querySelector('button[type="submit"]');
+    const status = $(statusSel);
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    status.className = 'muted';
+    try {
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildBody()),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Save failed');
+      status.textContent = data.portChanged
+        ? `Saved. Port changed to ${data.port} — restart the server to apply.`
+        : 'Saved.';
+      status.className = 'muted status-success';
+      $('#pat').value = '';
+      $('#gh-token').value = '';
+      await load();
+    } catch (err) {
+      status.textContent = err.message;
+      status.className = 'muted status-error';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+wireForm('#ado-form', '#ado-save-status', () => ({
+  azureDevOps: {
+    orgUrl: $('#org-url').value,
+    pat: $('#pat').value,
+    projects: $('#projects').value,
+  },
+}));
+
+wireForm('#github-form', '#github-save-status', () => ({
+  github: {
+    ghToken: $('#gh-token').value,
+    ghRepos: $('#gh-repos').value,
+    ghHost: $('#gh-host').value,
+  },
+}));
+
+wireForm('#general-form', '#general-save-status', () => ({
+  general: {
+    port: parseInt($('#port').value, 10),
+    staleDays: parseInt($('#stale-days').value, 10),
+    lookbackDays: parseInt($('#lookback-days').value, 10),
+  },
+}));
 
 load().catch((err) => {
-  $('#save-status').textContent = err.message;
-  $('#save-status').className = 'muted status-error';
+  $('#ado-save-status').textContent = err.message;
+  $('#ado-save-status').className = 'muted status-error';
 });

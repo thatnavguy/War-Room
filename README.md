@@ -1,7 +1,8 @@
 # Mission Hall
 
-A lightweight, local-only web app that tracks Azure DevOps work items you have touched:
-currently assigned, previously assigned, created, edited, commented, or mentioned in a comment.
+A lightweight, local-only web app that tracks Azure DevOps work items and GitHub
+issues/pull requests you have touched: currently assigned, previously assigned,
+created, edited, commented, or mentioned in a comment. Connect one or both sources.
 
 ## Setup
 
@@ -17,8 +18,12 @@ Keep this project folder in place. If you move it, remove the old shortcut and r
 1. `npm install`
 2. `npm start` → http://localhost:4073
 3. Open the **setup page** (linked on the dashboard, or http://localhost:4073/setup.html)
-   and enter your organization URL (e.g. `https://dev.azure.com/myorg`) and a
-   Personal Access Token with **Work Items (Read)** scope. Save — that's it.
+   and connect your sources — either or both:
+   - **Azure DevOps**: organization URL (e.g. `https://dev.azure.com/myorg`) and a
+     Personal Access Token with **Work Items (Read)** scope.
+   - **GitHub**: a personal access token (classic with `repo` scope, or fine-grained
+     with **Issues** and **Pull requests** read access). Optionally limit sync to
+     specific `owner/repo` repositories or point at a GitHub Enterprise host.
 
 Prefer files? You can also copy `.env.example` to `.env` and fill it in manually.
 The setup page writes to the same `.env` file.
@@ -27,7 +32,10 @@ The setup page writes to the same `.env` file.
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `PROJECTS` | all projects | Comma-separated project names to limit sync scope |
+| `PROJECTS` | all projects | Comma-separated project names to limit Azure DevOps sync scope |
+| `GH_TOKEN` | — | GitHub personal access token; enables the GitHub source |
+| `GH_REPOS` | all repos you are involved in | Comma-separated `owner/repo` entries to limit GitHub sync scope |
+| `GH_HOST` | github.com | GitHub Enterprise host |
 | `PORT` | 4073 | Local server port |
 | `STALE_DAYS` | 14 | Days without update before an open item assigned to you "needs attention" |
 | `LOOKBACK_DAYS` | 365 | How far back the first sync deep-scans for your edits/comments |
@@ -97,35 +105,40 @@ The setup page writes to the same `.env` file.
 - Closed and Removed items are hidden everywhere.
 
 Data lives in `data/devops-center.db` (SQLite). Nothing leaves your machine
-except read-only calls to your Azure DevOps org.
+except read-only calls to your connected Azure DevOps org and GitHub host.
 
-## Work sources and future GitHub support
+## Work sources
 
-Azure DevOps is the only supported connection today. GitHub is not connected or synced yet.
-Settings separates the connection from the workspace. Each item's source appears in its details
-and controls the **Open in …** link. A source filter appears when multiple providers are implemented.
+Azure DevOps and GitHub are both supported and can be connected at the same time.
+The **My work** feed stays unified: a **Source** filter appears once multiple sources
+are connected, each row links out to its own source, and **Sync now** syncs every
+connected source in one pass.
 
-The app now separates local item IDs from source IDs. An item is unique by provider,
-source scope, and external ID. For Azure DevOps, the scope is the organization URL.
-For GitHub, use the host and repository together, not the issue number alone.
-Existing item links, comments, and saved data keep their local IDs after migration.
-Sync checkpoints and profile names are also separate for each provider and scope.
+GitHub issues and pull requests are discovered with the search API (`assignee:@me`,
+`author:@me`, `involves:@me` since the last watermark). An item is unique by provider,
+source scope, and external ID. For Azure DevOps, the scope is the organization URL;
+for GitHub it is the host plus repository (`github.com/owner/repo`), so issue numbers
+never collide across repositories. Sync checkpoints and profile names are kept
+separate for each provider and scope.
 
-To add a provider, register its adapter in `server/providers.js`. It must supply its ID, display name,
-connection check, scope, sync functions, history loader, and safe rich-text renderer.
-Keep API calls and source-specific field mapping inside that provider's implementation.
-`server/azure-sync.js` is the existing Azure DevOps implementation.
+GitHub notes:
 
-Save normalized items through `server/store.js` with `provider`, `source_scope`,
-`external_id`, and an `is_closed` boolean. Use the local ID returned by `saveItem()`
-when recording touches. Use external IDs for remote calls and display.
-History must return the existing `{ rev, date, by, comment, changes }` entries;
-comments must be safe HTML. The authenticated screenshot endpoint remains Azure DevOps-only.
-Do not send another provider's URLs or credentials through it.
+- The type is shown as **Issue** or **Pull Request**; labels map to the label filter.
+- Comments and history come from issue comments and timeline events.
+- Markdown bodies and comments render as safe HTML (headings, lists, bold, code,
+  links). Images embedded in markdown are not loaded.
+- "Edited by me" is not tracked: the GitHub API does not expose it without
+  scanning every item's full timeline.
+- Attachments and related links are Azure DevOps-only; the authenticated
+  screenshot endpoint never proxies GitHub URLs.
 
-GitHub authentication, issue and pull-request mapping, Markdown rendering, and screenshot
-access still need implementation. Extending the connection forms and sync controls is also required.
+To add another provider, register its adapter in `server/providers.js`. It must supply
+its ID, display name, connection check, scope, sync functions, history loader, and safe
+rich-text renderer. Save normalized items through `server/store.js` with `provider`,
+`source_scope`, `external_id`, and an `is_closed` boolean; use the local ID returned by
+`saveItem()` when recording touches. History must return the existing
+`{ rev, date, by, comment, changes }` entries with safe HTML comments.
 Unknown providers fail explicitly rather than returning empty results.
-Saving Azure DevOps settings preserves unrelated `.env` entries.
+Saving settings preserves unrelated `.env` entries.
 
 Run the regression checks with `npm test`.
