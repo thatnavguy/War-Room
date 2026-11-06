@@ -60,7 +60,7 @@ The setup page writes to the same `.env` file.
 - Select **Comments only** beside **Comments & history** to hide field changes
   and revisions without comments. Clear it to see the full history again.
 - Use the section menu at the top of a work item to jump to **Description** or **Comments & history**.
-  The menu stays visible as you scroll. It only shows sections that are available.
+  The menu and **My work** back link stay visible as you scroll. The menu only shows sections that are available.
 - **Related links** shows existing linked work items, commits, pull requests, and web links, grouped by type.
   Links load live from Azure DevOps; no sync is needed. Attachments remain in their separate section.
   Azure DevOps Git links open directly. GitHub artifact links use an internal repository ID,
