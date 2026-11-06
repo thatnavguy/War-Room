@@ -4,6 +4,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const searchInput = $('#search');
 const filterEls = {
+  focus: $('#f-focus'),
   hidden: $('#f-hidden'),
   provider: $('#f-provider'),
   priority: $('#f-priority'),
@@ -17,8 +18,16 @@ const FILTER_STORAGE_KEY = 'mission-hall.work-filters';
 const SAVED_VIEWS_KEY = 'mission-hall.saved-work-views';
 const savedViewSelect = $('#saved-view-select');
 const savedViewStatus = $('#saved-view-status');
+const PRESET_VIEWS = [
+  { id: 'preset:daily-digest', name: 'Daily digest', filters: { focus: 'digest' } },
+  { id: 'preset:needs-attention', name: 'Needs attention', filters: { focus: 'attention' } },
+];
 let savedViews = [];
 let currentSavedViewId = '';
+
+function allViews() {
+  return [...PRESET_VIEWS, ...savedViews];
+}
 
 function currentFilterValues() {
   const filters = { search: searchInput.value };
@@ -52,16 +61,23 @@ function restoreFilters() {
   filters.mine = params.get('mine') === '1';
   applyFilterValues(filters);
   const savedViewId = params.get('savedView') || '';
-  currentSavedViewId = savedViews.some((view) => view.id === savedViewId) ? savedViewId : '';
+  currentSavedViewId = allViews().some((view) => view.id === savedViewId) ? savedViewId : '';
 }
 
 function renderSavedViews() {
-  savedViewSelect.replaceChildren(new Option('Choose a saved view', ''));
-  for (const view of savedViews) {
-    savedViewSelect.appendChild(new Option(view.name, view.id));
+  savedViewSelect.replaceChildren(new Option('Choose a view', ''));
+  const presetGroup = document.createElement('optgroup');
+  presetGroup.label = 'Preset views';
+  for (const view of PRESET_VIEWS) presetGroup.appendChild(new Option(view.name, view.id));
+  savedViewSelect.appendChild(presetGroup);
+  if (savedViews.length) {
+    const savedGroup = document.createElement('optgroup');
+    savedGroup.label = 'Your saved views';
+    for (const view of savedViews) savedGroup.appendChild(new Option(view.name, view.id));
+    savedViewSelect.appendChild(savedGroup);
   }
   savedViewSelect.value = currentSavedViewId;
-  $('#delete-view').disabled = !currentSavedViewId;
+  $('#delete-view').disabled = !currentSavedViewId || currentSavedViewId.startsWith('preset:');
 }
 
 function setSavedViewStatus(message, isError = false) {
@@ -102,8 +118,6 @@ let staleCutoff = null;
 let providers = [];
 let staleDays = 14;
 let currentItems = [];
-let attentionItems = [];
-let attentionExpanded = false;
 
 function fmtDate(iso) {
   if (!iso) return '–';
@@ -122,11 +136,6 @@ function dueDateStatus(iso, today = new Date()) {
   return due.getTime() === currentDay.getTime() ? 'Due today' : '';
 }
 
-function elapsedDays(iso) {
-  if (!iso) return null;
-  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
-}
-
 async function loadSummary() {
   const res = await fetch('/api/summary');
   const s = await res.json();
@@ -139,7 +148,6 @@ async function loadSummary() {
     ? `Last synced ${new Date(s.lastSync).toLocaleString()}`
     : 'Never synced';
   $('#rail-connection').textContent = `${providers.filter((provider) => provider.configured).map((provider) => provider.label).join(', ')} · local tracking`;
-  $('#attention-caption').textContent = `Assigned to you · No update in ${s.staleDays}+ days`;
 
   staleCutoff = new Date(Date.now() - s.staleDays * 86400000);
   staleDays = s.staleDays;
@@ -398,79 +406,13 @@ async function changeVisibility(item, hidden, button) {
       status.appendChild(undo);
     }
     await loadSummary();
-    await Promise.all([loadItems(), loadAttention()]);
+    await loadItems();
     if (hidden) status.querySelector('button')?.focus({ preventScroll: true });
     else $('#f-hidden').focus({ preventScroll: true });
   } catch (error) {
     status.textContent = error.message || 'Could not change item visibility. Try again.';
     status.classList.add('inline-error');
     button.disabled = false;
-  }
-}
-
-async function loadAttention() {
-  const items = [];
-  let total;
-  do {
-    const res = await fetch(`/api/items?mine=1&limit=500&offset=${items.length}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Could not load items needing attention.');
-    total = data.total;
-    if (data.items.length === 0 && items.length < total) {
-      throw new Error('Could not load all items needing attention. Reload the page to try again.');
-    }
-    items.push(...data.items);
-  } while (items.length < total);
-
-  attentionItems = items
-    .filter((item) => item.changed_date && new Date(item.changed_date) < staleCutoff)
-    .sort((a, b) => new Date(a.changed_date) - new Date(b.changed_date));
-  if (attentionItems.length <= 5) attentionExpanded = false;
-  renderAttention();
-}
-
-function renderAttention() {
-  const list = $('#attention-list');
-  list.replaceChildren();
-
-  $('#attention-count').textContent = attentionItems.length;
-  $('#attention-empty').hidden = attentionItems.length > 0;
-  list.hidden = attentionItems.length === 0;
-  const toggle = $('#show-attention');
-  toggle.hidden = attentionItems.length <= 5;
-  toggle.textContent = attentionExpanded ? 'Show fewer' : 'View all';
-  toggle.setAttribute('aria-expanded', String(attentionExpanded));
-
-  for (const item of attentionExpanded ? attentionItems : attentionItems.slice(0, 5)) {
-    const row = document.createElement('a');
-    row.className = 'attention-row';
-    row.href = `/item.html?id=${item.id}`;
-
-    const age = document.createElement('span');
-    age.className = 'attention-age';
-    const days = elapsedDays(item.changed_date);
-    age.textContent = days == null ? '–' : `${days} days`;
-
-    const title = document.createElement('span');
-    title.className = 'attention-title';
-    title.textContent = item.title || 'Untitled work item';
-    const project = document.createElement('span');
-    project.className = 'attention-project';
-    project.textContent = item.project || '–';
-    const state = document.createElement('span');
-    state.className = 'attention-state';
-    state.textContent = item.state || 'Unknown';
-    const priority = document.createElement('span');
-    priority.className = 'attention-priority';
-    priority.textContent = item.priority_level || '–';
-    priority.title = `Priority level: ${item.priority_level || 'Not set'}`;
-    const changed = document.createElement('span');
-    changed.className = 'attention-changed';
-    changed.textContent = fmtDate(item.changed_date);
-
-    row.append(age, title, project, state, priority, changed);
-    row.setAttribute('aria-label', `${item.title || 'Untitled work item'}, ${item.project || 'no project'}, ${item.state || 'unknown'}, priority level ${item.priority_level || 'not set'}, unchanged for ${age.textContent}, last changed ${changed.textContent}`);
-    list.appendChild(row);
   }
 }
 
@@ -497,8 +439,16 @@ function onFilterChange() {
 for (const el of Object.values(filterEls)) el.addEventListener('change', onFilterChange);
 mineCheckbox.addEventListener('change', onFilterChange);
 
+function applyView(view) {
+  currentSavedViewId = view.id;
+  applyFilterValues(view.filters);
+  setSavedViewStatus(`Showing “${view.name}”.`);
+  renderSavedViews();
+  loadItems().catch(showLoadError);
+}
+
 savedViewSelect.addEventListener('change', () => {
-  const view = savedViews.find((savedView) => savedView.id === savedViewSelect.value);
+  const view = allViews().find((savedView) => savedView.id === savedViewSelect.value);
   if (!view) {
     currentSavedViewId = '';
     renderSavedViews();
@@ -506,11 +456,12 @@ savedViewSelect.addEventListener('change', () => {
     setSavedViewStatus('Using current filters.');
     return;
   }
-  currentSavedViewId = view.id;
-  applyFilterValues(view.filters);
-  setSavedViewStatus(`Showing “${view.name}”.`);
-  renderSavedViews();
-  loadItems().catch(showLoadError);
+  applyView(view);
+});
+
+$('#card-stale-button').addEventListener('click', () => {
+  applyView(PRESET_VIEWS.find((view) => view.id === 'preset:needs-attention'));
+  $('#f-focus').focus({ preventScroll: true });
 });
 
 $('#save-view').addEventListener('click', () => {
@@ -531,8 +482,8 @@ $('#save-view-form').addEventListener('submit', (event) => {
     error.hidden = false;
     return;
   }
-  if (savedViews.some((view) => view.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
-    error.textContent = 'A saved view with that name already exists.';
+  if (allViews().some((view) => view.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+    error.textContent = 'A view with that name already exists.';
     error.hidden = false;
     return;
   }
@@ -575,11 +526,6 @@ $('#clear-filters').addEventListener('click', () => {
   searchInput.focus();
 });
 
-$('#show-attention').addEventListener('click', () => {
-  attentionExpanded = !attentionExpanded;
-  renderAttention();
-});
-
 document.addEventListener('keydown', (e) => {
   if (e.key === '/' && document.activeElement !== searchInput && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
     e.preventDefault();
@@ -594,12 +540,6 @@ document.addEventListener('keydown', (e) => {
 
 function showLoadError(err) {
   const message = err.message || 'Something went wrong while loading your work.';
-  $('#attention-list').hidden = false;
-  $('#attention-list').replaceChildren();
-  const error = document.createElement('p');
-  error.className = 'inline-error';
-  error.textContent = message;
-  $('#attention-list').appendChild(error);
   const tableBody = $('#results-body');
   tableBody.replaceChildren();
   const row = document.createElement('tr');
@@ -624,7 +564,7 @@ $('#sync-btn').addEventListener('click', async () => {
     }
     await loadSummary();
     await loadFilters();
-    await Promise.all([loadItems(), loadAttention()]);
+    await loadItems();
   } catch (err) {
     showLoadError(err);
   } finally {
@@ -647,14 +587,20 @@ async function init() {
     $('#unconfigured').hidden = false;
     $('#sync-btn').disabled = true;
     $('#rail-connection').textContent = 'Not connected';
-    $('#attention-list').hidden = true;
-    $('#attention-empty').hidden = false;
-    $('#attention-empty').textContent = 'Connect a work source to see work items that need attention.';
+    const tbody = $('#results-body');
+    tbody.replaceChildren();
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.className = 'table-message';
+    cell.colSpan = 10;
+    cell.textContent = 'Connect a work source to see your work.';
+    row.appendChild(cell);
+    tbody.appendChild(row);
     return;
   }
   await loadSummary();
   await loadFilters();
-  await Promise.all([loadItems(), loadAttention()]);
+  await loadItems();
 }
 
 init().catch(showLoadError);

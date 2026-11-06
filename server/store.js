@@ -223,6 +223,8 @@ function createStore(filename, legacyScope = '') {
   function buildItemQuery(filters) {
     const where = ['w.is_closed = 0', filters.hiddenOnly ? `${HIDDEN_ITEM} AND NOT ${REQUIRED_ITEM}` : VISIBLE_ITEM];
     const params = {};
+
+    if (filters.focus === 'attention') filters.assignedToMe = true;
   
     if (filters.search) {
       const term = filters.search.trim();
@@ -257,6 +259,13 @@ function createStore(filename, legacyScope = '') {
     }
     if (filters.from) { where.push('w.changed_date >= @from'); params.from = filters.from; }
     if (filters.to) { where.push('w.changed_date <= @to'); params.to = filters.to + 'T23:59:59'; }
+    if (filters.focus === 'attention') {
+      where.push(`julianday(w.changed_date) < julianday('now', '-' || @focusStaleDays || ' days')`);
+      params.focusStaleDays = config.staleDays;
+    } else if (filters.focus === 'digest') {
+      where.push(`(date(w.changed_date) = date('now', 'localtime')
+        OR (w.due_date IS NOT NULL AND w.due_date != '' AND date(w.due_date) <= date('now', 'localtime')))`);
+    }
   
     return { where: where.join(' AND '), params };
   }
