@@ -598,3 +598,5 @@ button:disabled { cursor: wait; opacity: .68; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+.connection-status { font-size: 13px; font-weight: 500; color: var(--muted, #5b6b7f); margin-left: 6px; }

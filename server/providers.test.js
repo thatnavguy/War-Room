@@ -166,9 +166,10 @@ test('legacy Azure DevOps items retain local IDs, touches and sync state', (t) =
 });
 
 test('only implemented providers are advertised and unsupported providers fail explicitly', () => {
-  assert.deepEqual(listProviders().map((provider) => provider.id), ['azure-devops']);
+  assert.deepEqual(listProviders().map((provider) => provider.id), ['azure-devops', 'github']);
   assert.equal(getProvider('azure-devops').label, 'Azure DevOps');
-  assert.throws(() => getProvider('github'), /Unsupported provider/);
+  assert.equal(getProvider('github').label, 'GitHub');
+  assert.throws(() => getProvider('gitlab'), /Unsupported provider/);
 });
 
 test('project filter lists only projects with recorded touches, including closed items', (t) => {

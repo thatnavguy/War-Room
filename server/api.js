@@ -13,10 +13,19 @@ router.get('/providers', (req, res) => res.json({ providers: listProviders() }))
 
 router.get('/config', (req, res) => {
   res.json({
-    configured: config.isConfigured(),
-    orgUrl: config.orgUrl,
-    patSet: Boolean(config.pat),
-    projects: config.projects.join(', '),
+    configured: config.isAnyConfigured(),
+    azureDevOps: {
+      configured: config.isConfigured(),
+      orgUrl: config.orgUrl,
+      patSet: Boolean(config.pat),
+      projects: config.projects.join(', '),
+    },
+    github: {
+      configured: config.isGitHubConfigured(),
+      tokenSet: Boolean(config.ghToken),
+      repos: config.ghRepos.join(', '),
+      host: config.ghHost,
+    },
     port: config.port,
     staleDays: config.staleDays,
     lookbackDays: config.lookbackDays,
@@ -26,25 +35,49 @@ router.get('/config', (req, res) => {
 router.post('/config', (req, res) => {
   try {
     const body = req.body || {};
-    if (!body.orgUrl || !body.orgUrl.trim()) {
-      return res.status(400).json({ error: 'Organization URL is required' });
+    const values = {};
+    if (body.azureDevOps) {
+      const section = body.azureDevOps;
+      if (!section.orgUrl || !section.orgUrl.trim()) {
+        return res.status(400).json({ error: 'Organization URL is required' });
+      }
+      if (!config.pat && !(section.pat || '').trim()) {
+        return res.status(400).json({ error: 'A Personal Access Token is required' });
+      }
+      values.orgUrl = section.orgUrl;
+      values.pat = section.pat;
+      values.projects = section.projects;
     }
-    if (!config.pat && !(body.pat || '').trim()) {
-      return res.status(400).json({ error: 'A Personal Access Token is required' });
+    if (body.github) {
+      const section = body.github;
+      if (!config.ghToken && !(section.ghToken || '').trim()) {
+        return res.status(400).json({ error: 'A GitHub personal access token is required' });
+      }
+      values.ghToken = section.ghToken;
+      values.ghRepos = section.ghRepos;
+      values.ghHost = section.ghHost;
     }
-    const result = config.save(body);
-    res.json({ saved: true, configured: config.isConfigured(), portChanged: result.portChanged, port: config.port });
+    if (body.general) {
+      values.port = body.general.port;
+      values.staleDays = body.general.staleDays;
+      values.lookbackDays = body.general.lookbackDays;
+    }
+    if (Object.keys(values).length === 0) {
+      return res.status(400).json({ error: 'Nothing to save. Send an azureDevOps, github, or general section.' });
+    }
+    const result = config.save(values);
+    res.json({ saved: true, configured: config.isAnyConfigured(), portChanged: result.portChanged, port: config.port });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 router.post('/sync', async (req, res) => {
-  if (!config.isConfigured()) {
+  if (!config.isAnyConfigured()) {
     return res.status(400).json({ error: 'Not configured. Open the setup page first.' });
   }
   try {
-    const stats = await sync.runSync(req.body?.provider || 'azure-devops');
+    const stats = await sync.runSync(req.body?.provider || undefined);
     res.json(stats);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -56,7 +89,7 @@ router.get('/sync/status', (req, res) => {
 });
 
 router.get('/me', (req, res) => {
-  res.json({ displayName: db.getSyncState('meDisplayName') || '', provider: 'azure-devops', source_scope: config.orgUrl });
+  res.json({ identities: db.identities() });
 });
 
 router.get('/summary', (req, res) => {

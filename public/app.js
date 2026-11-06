@@ -99,9 +99,6 @@ function loadSavedViews() {
 }
 
 let staleCutoff = null;
-let meName = '';
-let meProvider = '';
-let meScope = '';
 let providers = [];
 let staleDays = 14;
 let currentItems = [];
@@ -229,7 +226,7 @@ async function loadItems() {
     if (staleCutoff && item.changed_date && new Date(item.changed_date) < staleCutoff) {
       tr.classList.add('stale-row');
     }
-    if (meName && item.provider === meProvider && item.source_scope === meScope && item.assigned_to === meName) {
+    if (item.my_display_name && item.assigned_to === item.my_display_name) {
       tr.classList.add('mine-row');
     }
 
@@ -652,15 +649,9 @@ async function init() {
     $('#rail-connection').textContent = 'Not connected';
     $('#attention-list').hidden = true;
     $('#attention-empty').hidden = false;
-    $('#attention-empty').textContent = 'Connect Azure DevOps to see work items that need attention.';
+    $('#attention-empty').textContent = 'Connect a work source to see work items that need attention.';
     return;
   }
-  const meRes = await fetch('/api/me');
-  const me = await meRes.json();
-  if (!meRes.ok) throw new Error(me.error || 'Could not load your Azure DevOps profile.');
-  meName = me.displayName;
-  meProvider = me.provider;
-  meScope = me.source_scope;
   await loadSummary();
   await loadFilters();
   await Promise.all([loadItems(), loadAttention()]);

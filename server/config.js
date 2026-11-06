@@ -26,17 +26,32 @@ function intFromEnv(name, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function normalizeHost(host) {
+  return (host || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase();
+}
+
 const config = {
   orgUrl: '',
   pat: '',
   authHeader: '',
   projects: [],
+  ghToken: '',
+  ghRepos: [],
+  ghHost: 'github.com',
   port: 4073,
   staleDays: 14,
   lookbackDays: 365,
 
   isConfigured() {
     return Boolean(this.orgUrl && this.pat);
+  },
+
+  isGitHubConfigured() {
+    return Boolean(this.ghToken);
+  },
+
+  isAnyConfigured() {
+    return this.isConfigured() || this.isGitHubConfigured();
   },
 
   load() {
@@ -47,21 +62,31 @@ const config = {
       .split(',')
       .map((p) => p.trim())
       .filter(Boolean);
+    this.ghToken = (process.env.GH_TOKEN || '').trim();
+    this.ghRepos = (process.env.GH_REPOS || '')
+      .split(',')
+      .map((r) => r.trim().replace(/^https?:\/\/[^/]+\//i, '').replace(/\/+$/, ''))
+      .filter((r) => /^[\w.-]+\/[\w.-]+$/.test(r));
+    this.ghHost = normalizeHost(process.env.GH_HOST) || 'github.com';
     this.port = intFromEnv('PORT', 4073);
     this.staleDays = intFromEnv('STALE_DAYS', 14);
     this.lookbackDays = intFromEnv('LOOKBACK_DAYS', 365);
   },
 
-  save({ orgUrl, pat, projects, port, staleDays, lookbackDays }) {
+  // Only keys present in the argument are written; other settings are preserved.
+  // Blank tokens keep the existing one.
+  save({ orgUrl, pat, projects, port, staleDays, lookbackDays, ghToken, ghRepos, ghHost }) {
     const oldPort = this.port;
-    const values = {
-      ADO_ORG_URL: (orgUrl || '').trim().replace(/\/+$/, ''),
-      ADO_PAT: (pat || '').trim() || this.pat, // blank PAT keeps the existing one
-      PROJECTS: (projects || '').trim(),
-      PORT: String(port || 4073),
-      STALE_DAYS: String(staleDays || 14),
-      LOOKBACK_DAYS: String(lookbackDays || 365),
-    };
+    const values = {};
+    if (orgUrl !== undefined) values.ADO_ORG_URL = (orgUrl || '').trim().replace(/\/+$/, '');
+    if (pat !== undefined) values.ADO_PAT = (pat || '').trim() || this.pat;
+    if (projects !== undefined) values.PROJECTS = (projects || '').trim();
+    if (ghToken !== undefined) values.GH_TOKEN = (ghToken || '').trim() || this.ghToken;
+    if (ghRepos !== undefined) values.GH_REPOS = (ghRepos || '').trim();
+    if (ghHost !== undefined) values.GH_HOST = normalizeHost(ghHost) || 'github.com';
+    if (port !== undefined) values.PORT = String(port || 4073);
+    if (staleDays !== undefined) values.STALE_DAYS = String(staleDays || 14);
+    if (lookbackDays !== undefined) values.LOOKBACK_DAYS = String(lookbackDays || 365);
 
     const existing = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf8') : '';
     const content = mergeEnv(existing, values);

@@ -38,7 +38,40 @@ const azureDevOps = {
   },
 };
 
-const providers = new Map([[azureDevOps.id, azureDevOps]]);
+function requireGitHubScope(item) {
+  if (!config.isGitHubConfigured()) throw new Error('Connect GitHub in Settings before loading live issue activity.');
+  if (!item.source_scope.startsWith(`${config.ghHost}/`)) {
+    throw new Error('This item belongs to a different GitHub host. Connect that host in Settings to load its activity.');
+  }
+}
+
+const githubProvider = {
+  id: 'github',
+  label: 'GitHub',
+  isConfigured: () => config.isGitHubConfigured(),
+  scope: () => config.ghHost,
+  runSync: () => require('./github-sync').runSync(),
+  syncStatus: () => require('./github-sync').syncStatus(),
+  async getHistory(item) {
+    requireGitHubScope(item);
+    const meLogin = require('./db').getSyncState('meDisplayName', 'github', item.source_scope) || '';
+    return require('./github-sync').getHistory(item, meLogin);
+  },
+  async getRelatedLinks(item) {
+    requireGitHubScope(item);
+    return [];
+  },
+  async getAttachments(item) {
+    requireGitHubScope(item);
+    return [];
+  },
+  sanitizeRichText(markdown, item) {
+    const meLogin = item ? require('./db').getSyncState('meDisplayName', 'github', item.source_scope) : '';
+    return require('./markdown').renderMarkdown(markdown, meLogin || '');
+  },
+};
+
+const providers = new Map([[azureDevOps.id, azureDevOps], [githubProvider.id, githubProvider]]);
 
 function getProvider(id) {
   const provider = providers.get(id);

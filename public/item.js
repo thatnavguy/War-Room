@@ -2,6 +2,8 @@
 
 const $ = (sel) => document.querySelector(sel);
 
+let providerLabel = 'the source';
+
 const TOUCH_LABELS = {
   assigned: 'Assigned to me (now or previously)',
   created: 'Created by me',
@@ -52,6 +54,7 @@ async function load() {
     return;
   }
   const item = await res.json();
+  providerLabel = item.provider_label || providerLabel;
 
   document.title = `${item.external_id} — Mission Hall`;
   $('#item-title').textContent = `${item.type} ${item.external_id}: ${item.title}`;
@@ -131,7 +134,7 @@ async function loadAttachments(id) {
     if (!res.ok) throw new Error(data.error || 'Failed to load attachments');
     list.replaceChildren();
     status.textContent = data.attachments.length
-      ? `${data.attachments.length} attachment${data.attachments.length === 1 ? '' : 's'}. File links open in Azure DevOps.`
+      ? `${data.attachments.length} attachment${data.attachments.length === 1 ? '' : 's'}. File links open in ${providerLabel}.`
       : 'No attachments on this work item.';
     for (const attachment of data.attachments) {
       const entry = document.createElement('li');
