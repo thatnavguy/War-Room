@@ -28,7 +28,9 @@ The dashboard should surface work that needs attention before the wider workload
 
 - The current integration makes read-only calls to the user's Azure DevOps organization.
 - The app supports organization URL and Personal Access Token setup, optional project scoping, configurable sync lookback and stale-item thresholds, and local SQLite storage.
-- The dashboard supports search, project/type/state/iteration/touch/date filters, and an assigned-to-me filter.
+- The dashboard supports search, project/type/state/priority/label filters, saved views, and an assigned-to-me filter.
+- Needs attention shows only stale open work currently assigned to the user. It expands in place to show all matching items.
+- The work list shows source due dates instead of iteration. Today and overdue dates have distinct colors and text labels.
 - Item details include why the item is tracked, its fields, description, acceptance criteria, repro steps, attachments, comments, and revision history when available.
 - The current implementation is Azure DevOps-only. GitHub support is a future goal; its behavior and scope are undecided.
 - Preserve current functionality and data behavior during the visual redesign.

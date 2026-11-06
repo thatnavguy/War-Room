@@ -72,7 +72,7 @@ function createStore(filename, legacyScope = '') {
       `);
     }
     const columns = new Set(db.prepare('PRAGMA table_info(work_items)').all().map((c) => c.name));
-    for (const col of ['description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level']) {
+    for (const col of ['description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level', 'due_date']) {
       if (!columns.has(col)) db.exec(`ALTER TABLE work_items ADD COLUMN ${col} TEXT`);
     }
     if (!columns.has('provider')) {
@@ -97,11 +97,11 @@ function createStore(filename, legacyScope = '') {
   INSERT INTO work_items (id, rev, title, type, state, assigned_to, created_by, created_date,
                           changed_by, changed_date, tags, area_path, iteration_path, project, url, synced_at,
                           description, acceptance_criteria, repro_steps, history, attachments,
-                          provider, source_scope, external_id, is_closed, priority_level)
+                          provider, source_scope, external_id, is_closed, priority_level, due_date)
   VALUES (@id, @rev, @title, @type, @state, @assigned_to, @created_by, @created_date,
           @changed_by, @changed_date, @tags, @area_path, @iteration_path, @project, @url, @synced_at,
           @description, @acceptance_criteria, @repro_steps, @history, @attachments,
-          @provider, @source_scope, @external_id, @is_closed, @priority_level)
+          @provider, @source_scope, @external_id, @is_closed, @priority_level, @due_date)
   ON CONFLICT(id) DO UPDATE SET
     rev = excluded.rev,
     title = excluded.title,
@@ -124,7 +124,8 @@ function createStore(filename, legacyScope = '') {
     history = excluded.history,
     attachments = excluded.attachments,
     is_closed = excluded.is_closed,
-    priority_level = excluded.priority_level
+    priority_level = excluded.priority_level,
+    due_date = excluded.due_date
   `);
   
   const upsertTouch = db.prepare(`
@@ -166,7 +167,7 @@ function createStore(filename, legacyScope = '') {
     // Local IDs remain stable; source IDs are only unique within their provider and scope.
     const id = existing ? existing.id : null;
     const defaults = Object.fromEntries(['assigned_to', 'created_by', 'created_date', 'changed_by', 'changed_date',
-      'tags', 'area_path', 'iteration_path', 'description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level']
+      'tags', 'area_path', 'iteration_path', 'description', 'acceptance_criteria', 'repro_steps', 'history', 'attachments', 'priority_level', 'due_date']
       .map((key) => [key, null]));
     const result = upsertItem.run({
       ...defaults, rev: 0, title: '', type: '', state: '', project: '', url: '', synced_at: new Date().toISOString(),
@@ -263,11 +264,12 @@ function createStore(filename, legacyScope = '') {
         AND w.changed_date >= datetime('now', '-7 days')
     `).n;
   
+    const assigned = buildItemQuery({ assignedToMe: true });
     const stale = one(`
       SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
-      WHERE w.is_closed = 0
-        AND w.changed_date < datetime('now', '-' || @staleDays || ' days')
-    `, { staleDays }).n;
+      WHERE ${assigned.where}
+        AND julianday(w.changed_date) < julianday('now', '-' || @staleDays || ' days')
+    `, { ...assigned.params, staleDays }).n;
   
     const group = (col) => all(`
       SELECT w.${col} AS key, COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}

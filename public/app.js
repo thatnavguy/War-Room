@@ -10,9 +10,6 @@ const filterEls = {
   project: $('#f-project'),
   type: $('#f-type'),
   state: $('#f-state'),
-  iteration: $('#f-iteration'),
-  from: $('#f-from'),
-  to: $('#f-to'),
 };
 const mineCheckbox = $('#f-mine');
 const FILTER_STORAGE_KEY = 'mission-hall.work-filters';
@@ -107,11 +104,24 @@ let meScope = '';
 let providers = [];
 let staleDays = 14;
 let currentItems = [];
+let attentionItems = [];
+let attentionExpanded = false;
 
 function fmtDate(iso) {
   if (!iso) return '–';
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function dueDateStatus(iso, today = new Date()) {
+  if (!iso) return '';
+  const due = new Date(iso);
+  if (Number.isNaN(due.getTime())) return '';
+  due.setHours(0, 0, 0, 0);
+  const currentDay = new Date(today);
+  currentDay.setHours(0, 0, 0, 0);
+  if (due < currentDay) return 'Overdue';
+  return due.getTime() === currentDay.getTime() ? 'Due today' : '';
 }
 
 function elapsedDays(iso) {
@@ -126,12 +136,12 @@ async function loadSummary() {
   $('#card-open').textContent = s.open;
   $('#card-recent').textContent = s.recentlyUpdated;
   $('#card-stale').textContent = s.stale;
-  $('#card-stale-label').textContent = `unchanged for ${s.staleDays}+ days`;
+  $('#card-stale-label').textContent = `assigned to you, unchanged for ${s.staleDays}+ days`;
   $('#last-sync').textContent = s.lastSync
     ? `Last synced ${new Date(s.lastSync).toLocaleString()}`
     : 'Never synced';
   $('#rail-connection').textContent = `${providers.filter((provider) => provider.configured).map((provider) => provider.label).join(', ')} · local tracking`;
-  $('#attention-caption').textContent = `No update in ${s.staleDays}+ days`;
+  $('#attention-caption').textContent = `Assigned to you · No update in ${s.staleDays}+ days`;
 
   staleCutoff = new Date(Date.now() - s.staleDays * 86400000);
   staleDays = s.staleDays;
@@ -163,7 +173,6 @@ async function loadFilters() {
   fill(filterEls.project, f.projects, 'All projects');
   fill(filterEls.type, f.types, 'All types');
   fill(filterEls.state, f.states, 'All states');
-  fill(filterEls.iteration, f.iterations, 'All iterations');
   fill(filterEls.priority, f.priorities, 'All priority levels');
   fill(filterEls.label, f.labels, 'All labels');
   filterEls.provider.replaceChildren(new Option('All sources', ''));
@@ -230,7 +239,7 @@ async function loadItems() {
       { label: 'State', value: item.state, kind: 'state' },
       { label: 'Assigned to', value: item.assigned_to },
       { label: 'Project', value: item.project },
-      { label: 'Iteration', value: item.iteration_path ? item.iteration_path.split('\\').pop() : '–', title: item.iteration_path },
+      { label: 'Due date', value: item.due_date, kind: 'due' },
       { label: 'Changed', value: fmtDate(item.changed_date) },
       { label: 'Priority level', value: item.priority_level },
     ];
@@ -264,6 +273,16 @@ async function loadItems() {
           }
           td.appendChild(group);
         }
+      } else if (cell.kind === 'due') {
+        const status = dueDateStatus(cell.value);
+        const due = document.createElement('span');
+        due.className = 'due-date';
+        due.textContent = fmtDate(cell.value);
+        if (status) {
+          due.classList.add(status === 'Overdue' ? 'due-overdue' : 'due-today');
+          due.textContent += ` · ${status}`;
+        }
+        td.appendChild(due);
       } else if (cell.kind === 'state') {
         const state = document.createElement('span');
         state.className = `state-tag${tr.classList.contains('stale-row') ? ' state-tag-stale' : ''}`;
@@ -294,22 +313,39 @@ async function loadItems() {
 }
 
 async function loadAttention() {
-  const res = await fetch('/api/items?limit=500');
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Could not load items needing attention.');
+  const items = [];
+  let total;
+  do {
+    const res = await fetch(`/api/items?mine=1&limit=500&offset=${items.length}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load items needing attention.');
+    total = data.total;
+    if (data.items.length === 0 && items.length < total) {
+      throw new Error('Could not load all items needing attention. Reload the page to try again.');
+    }
+    items.push(...data.items);
+  } while (items.length < total);
 
-  const staleItems = data.items
+  attentionItems = items
     .filter((item) => item.changed_date && new Date(item.changed_date) < staleCutoff)
     .sort((a, b) => new Date(a.changed_date) - new Date(b.changed_date));
+  if (attentionItems.length <= 5) attentionExpanded = false;
+  renderAttention();
+}
+
+function renderAttention() {
   const list = $('#attention-list');
   list.replaceChildren();
 
-  $('#attention-count').textContent = $('#card-stale').textContent;
-  $('#attention-empty').hidden = staleItems.length > 0;
-  $('#attention-list').hidden = staleItems.length === 0;
-  $('#show-attention').hidden = staleItems.length === 0;
+  $('#attention-count').textContent = attentionItems.length;
+  $('#attention-empty').hidden = attentionItems.length > 0;
+  list.hidden = attentionItems.length === 0;
+  const toggle = $('#show-attention');
+  toggle.hidden = attentionItems.length <= 5;
+  toggle.textContent = attentionExpanded ? 'Show fewer' : 'View all';
+  toggle.setAttribute('aria-expanded', String(attentionExpanded));
 
-  for (const item of staleItems.slice(0, 5)) {
+  for (const item of attentionExpanded ? attentionItems : attentionItems.slice(0, 5)) {
     const row = document.createElement('a');
     row.className = 'attention-row';
     row.href = `/item.html?id=${item.id}`;
@@ -328,12 +364,16 @@ async function loadAttention() {
     const state = document.createElement('span');
     state.className = 'attention-state';
     state.textContent = item.state || 'Unknown';
+    const priority = document.createElement('span');
+    priority.className = 'attention-priority';
+    priority.textContent = item.priority_level || '–';
+    priority.title = `Priority level: ${item.priority_level || 'Not set'}`;
     const changed = document.createElement('span');
     changed.className = 'attention-changed';
     changed.textContent = fmtDate(item.changed_date);
 
-    row.append(age, title, project, state, changed);
-    row.setAttribute('aria-label', `${item.title || 'Untitled work item'}, ${item.project || 'no project'}, ${item.state || 'unknown'}, unchanged for ${age.textContent}, last changed ${changed.textContent}`);
+    row.append(age, title, project, state, priority, changed);
+    row.setAttribute('aria-label', `${item.title || 'Untitled work item'}, ${item.project || 'no project'}, ${item.state || 'unknown'}, priority level ${item.priority_level || 'not set'}, unchanged for ${age.textContent}, last changed ${changed.textContent}`);
     list.appendChild(row);
   }
 }
@@ -440,9 +480,8 @@ $('#clear-filters').addEventListener('click', () => {
 });
 
 $('#show-attention').addEventListener('click', () => {
-  if (staleCutoff) filterEls.to.value = staleCutoff.toISOString().slice(0, 10);
-  loadItems().catch(showLoadError);
-  $('#work-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  attentionExpanded = !attentionExpanded;
+  renderAttention();
 });
 
 document.addEventListener('keydown', (e) => {

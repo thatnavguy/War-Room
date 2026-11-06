@@ -226,6 +226,15 @@ The desktop work-item table uses navy column headers with light text, matching s
 Column headers stay below the workspace toolbar while scrolling through the list.
 Narrow screens retain the labeled item layout rather than a sticky table header.
 
+Needs attention includes only stale open items currently assigned to the user. Show five rows initially.
+View all expands the board in place; Show fewer collapses it without changing work filters.
+Priority level appears as a board column on desktop and a labeled line on narrow screens.
+
+The work list replaces the Iteration column with Due date. Use recorded source dates only.
+Due today uses amber with navy text; overdue uses the pale red surface with dark red text.
+Include the words Due today or Overdue, so color is not the only signal. Future dates stay neutral; missing dates use a dash.
+Compare calendar days in the user's local time zone. Iteration and From/To filters are not shown or restored from old views.
+
 Related links uses the shared navy section heading and a sticky-menu shortcut. Group links by their actual relation type,
 with link text, supplied update dates, and comments. Unresolved artifact links clearly point back to Azure DevOps.
 

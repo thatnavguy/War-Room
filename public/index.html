@@ -68,18 +68,18 @@
           <div class="section-title-group">
             <h2 id="attention-title">Needs attention</h2>
             <span id="attention-count" class="attention-count">—</span>
-            <span id="attention-caption" class="section-caption">No update in 14+ days</span>
+            <span id="attention-caption" class="section-caption">Assigned to you · No update in 14+ days</span>
           </div>
-          <button id="show-attention" class="text-button" type="button" hidden>View all</button>
+          <button id="show-attention" class="text-button" type="button" aria-expanded="false" aria-controls="attention-list" hidden>View all</button>
         </div>
         <div class="attention-list-wrap">
           <div class="attention-list-head">
-            <span>Age</span><span>Work item</span><span>Project</span><span>State</span><span>Last changed</span>
+            <span>Age</span><span>Work item</span><span>Project</span><span>State</span><span>Priority level</span><span>Last changed</span>
           </div>
           <div id="attention-list" class="attention-list" aria-live="polite">
             <p class="loading-line">Loading items that need attention…</p>
           </div>
-          <p id="attention-empty" class="empty-state" hidden>Nothing is waiting on you. Your tracked work is up to date.</p>
+          <p id="attention-empty" class="empty-state" hidden>No stale open items are currently assigned to you.</p>
         </div>
       </section>
 
@@ -148,15 +148,12 @@
           <label class="filter-field"><span>Label</span><select id="f-label" aria-label="Label"><option value="">All labels</option></select></label>
           <label class="filter-field"><span>Type</span><select id="f-type" aria-label="Type"><option value="">All types</option></select></label>
           <label class="filter-field"><span>State</span><select id="f-state" aria-label="State"><option value="">All states</option></select></label>
-          <label class="filter-field iteration-filter"><span>Iteration</span><select id="f-iteration" aria-label="Iteration"><option value="">All iterations</option></select></label>
           <label class="check-filter"><input id="f-mine" type="checkbox"><span>Assigned to me</span></label>
-          <label class="date-filter"><span>From</span><input id="f-from" type="date" aria-label="Changed from"></label>
-          <label class="date-filter"><span>To</span><input id="f-to" type="date" aria-label="Changed to"></label>
         </div>
         <div class="table-wrap">
           <table id="results">
             <thead>
-              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Iteration</th><th scope="col">Changed</th><th scope="col">Priority level</th></tr>
+              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Due date</th><th scope="col">Changed</th><th scope="col">Priority level</th></tr>
             </thead>
             <tbody id="results-body"><tr><td class="table-message" colspan="9">Loading your work…</td></tr></tbody>
           </table>

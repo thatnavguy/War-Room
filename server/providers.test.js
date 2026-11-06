@@ -36,6 +36,65 @@ function fixture() {
   return path.join(directory, 'nested', 'items.db');
 }
 
+test('needs attention counts only stale open work currently assigned to the source profile', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const scope = 'https://dev.azure.com/example';
+  store.setSyncState('meDisplayName', 'Me', 'azure-devops', scope);
+  const ago = (days) => new Date(Date.now() - days * 86400000).toISOString();
+  const save = (externalId, overrides = {}, touches = ['assigned']) => {
+    const id = store.saveItem({
+      provider: 'azure-devops', source_scope: scope, external_id: externalId,
+      assigned_to: 'Me', changed_date: ago(31), is_closed: false, ...overrides,
+    });
+    for (const touch of touches) store.saveTouch(id, touch, ago(31));
+    return id;
+  };
+  const staleMine = save('1', {}, ['assigned', 'commented']);
+  save('2', { assigned_to: 'Someone else' });
+  save('3', { assigned_to: 'Someone else' }, ['created', 'edited', 'mentioned']);
+  save('4', { assigned_to: null });
+  save('5', { is_closed: true });
+  save('6', { changed_date: ago(29) });
+  save('7', { source_scope: 'https://dev.azure.com/another' });
+  save('8', { provider: 'another-provider' });
+  save('9', { changed_date: null });
+  save('10', {}, []);
+  assert.equal(store.getSummary(30).stale, 1);
+  assert.equal(store.getSummary(32).stale, 0);
+  assert.equal(store.queryItems({}).total, 8);
+
+  store.saveItem({
+    provider: 'azure-devops', source_scope: scope, external_id: '1',
+    assigned_to: 'Someone else', changed_date: ago(31), is_closed: false,
+  });
+  assert.equal(store.getSummary(30).stale, 0);
+  assert.equal(store.getItem(staleMine).touches.length, 2);
+});
+
+test('needs attention applies the stale threshold to timestamps rather than date strings', (t) => {
+  const filename = fixture();
+  const store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const scope = 'https://dev.azure.com/example';
+  store.setSyncState('meDisplayName', 'Me', 'azure-devops', scope);
+  for (const [externalId, hours] of [['1', 30 * 24 + 1], ['2', 30 * 24 - 1]]) {
+    const id = store.saveItem({
+      provider: 'azure-devops', source_scope: scope, external_id: externalId,
+      assigned_to: 'Me', changed_date: new Date(Date.now() - hours * 3600000).toISOString(),
+    });
+    store.saveTouch(id, 'assigned');
+  }
+  assert.equal(store.getSummary(30).stale, 1);
+});
+
 test('source numbers cannot collide across providers or repositories', (t) => {
   const filename = fixture();
   const store = createStore(filename);
@@ -232,3 +291,48 @@ test('Azure DevOps discovers custom priority and falls back to standard numeric 
     assert.ok(fields.includes('Custom.PriorityLevel'));
     assert.deepEqual(items.map((item) => item.priority_level), ['P3 - Medium', '1', null]);
   });
+
+test('due dates persist through reopening and clear when removed at the source', (t) => {
+  const filename = fixture();
+  let store = createStore(filename);
+  t.after(() => {
+    store.close();
+    fs.rmSync(path.dirname(path.dirname(filename)), { recursive: true, force: true });
+  });
+  const base = { provider: 'azure-devops', source_scope: 'https://dev.azure.com/example', external_id: '1' };
+  const due = '2026-11-06T00:00:00Z';
+  const id = store.saveItem({ ...base, due_date: due });
+  store.saveTouch(id, 'assigned');
+  store.close();
+  store = createStore(filename);
+  assert.equal(store.getItem(id).due_date, due);
+  assert.equal(store.queryItems({}).items[0].due_date, due);
+  assert.equal(store.saveItem({ ...base, due_date: null }), id);
+  assert.equal(store.getItem(id).due_date, null);
+});
+
+test('Azure DevOps requests supported due-date fields and handles missing due dates', async (t) => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  for (const referenceName of ['Microsoft.VSTS.Scheduling.DueDate', 'Custom.DueDate', null]) {
+    let fields;
+    global.fetch = async (url, options) => {
+      if (url.includes('/wit/fields?')) {
+        return { ok: true, json: async () => ({
+          value: referenceName ? [{ name: 'Due Date', referenceName, type: 'dateTime' }] : [],
+        }) };
+      }
+      fields = JSON.parse(options.body).fields;
+      return { ok: true, json: async () => ({ value: [
+        { id: 1, fields: referenceName ? { [referenceName]: '2026-11-06T00:00:00Z' } : {} },
+        { id: 2, fields: {} },
+      ] }) };
+    };
+    const items = await ado.getWorkItems([1, 2]);
+    assert.deepEqual(items.map((item) => item.due_date), [
+      referenceName ? '2026-11-06T00:00:00Z' : null, null,
+    ]);
+    if (referenceName) assert.ok(fields.includes(referenceName));
+    else assert.ok(!fields.includes('Microsoft.VSTS.Scheduling.DueDate'));
+  }
+});

@@ -11,11 +11,11 @@ if (Test-Path $envFile) {
     }
 }
 $dashboardUrl = "http://localhost:$port"
-$configUrl = "$dashboardUrl/api/config"
+$configUrl = "http://127.0.0.1:$port/api/config"
 
 function Test-Dashboard {
     try {
-        $response = Invoke-RestMethod -Uri $configUrl -TimeoutSec 2
+        $response = Invoke-RestMethod -Uri $configUrl -TimeoutSec 5
         return $null -ne $response.PSObject.Properties['configured']
     } catch {
         return $false
@@ -39,9 +39,15 @@ if (-not (Test-Path (Join-Path $PSScriptRoot 'node_modules'))) {
 
 if (-not (Test-Dashboard)) {
     Write-Host "Starting Mission Hall on port $port..."
+    $logDirectory = Join-Path $PSScriptRoot 'data'
+    New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+    $outputLog = Join-Path $logDirectory 'dashboard-output.log'
+    $errorLog = Join-Path $logDirectory 'dashboard-error.log'
     $server = Start-Process -FilePath 'cmd.exe' `
-        -ArgumentList @('/c', 'npm start') `
+        -ArgumentList @('/d', '/c', 'npm start') `
         -WorkingDirectory $PSScriptRoot `
+        -RedirectStandardOutput $outputLog `
+        -RedirectStandardError $errorLog `
         -PassThru
 
     $started = $false
@@ -51,14 +57,15 @@ if (-not (Test-Dashboard)) {
             break
         }
         if ($server.HasExited) {
-            Write-Error 'The dashboard stopped before it was ready. Check the server window for details.'
+            $details = (Get-Content -LiteralPath $errorLog -Tail 25) -join [Environment]::NewLine
+            Write-Error "The dashboard stopped before it was ready. See $errorLog and $outputLog for details.`n$details"
             exit 1
         }
         Start-Sleep -Seconds 1
     }
 
     if (-not $started) {
-        Write-Error "The dashboard did not respond at $dashboardUrl within 30 seconds. Check the server window."
+        Write-Error "The dashboard did not respond at $dashboardUrl. See $errorLog and $outputLog for details."
         exit 1
     }
 }

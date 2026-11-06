@@ -29,6 +29,7 @@ function mapItem(wi) {
     rev: wi.rev || 0,
     title: f['System.Title'] || '',
     priority_level: wi.priority_level ?? null,
+    due_date: wi.due_date ?? null,
     type: f['System.WorkItemType'] || '',
     state: f['System.State'] || '',
     assigned_to: f['System.AssignedTo'] ? f['System.AssignedTo'].displayName : null,
@@ -86,7 +87,7 @@ async function runSync() {
     ]);
 
     const candidateIds = new Set([...everAssigned, ...created, ...changedByMe, ...changedSince]);
-    if (!db.getSyncState('priorityVersion')) {
+    if (!db.getSyncState('priorityVersion') || !db.getSyncState('dueDateVersion')) {
       for (const id of db.sourceItemIds('azure-devops', config.orgUrl)) candidateIds.add(Number(id));
     }
     stats.candidates = candidateIds.size;
@@ -169,6 +170,7 @@ async function runSync() {
     if (stats.errors.length === 0) {
       db.setSyncState('lastSync', now);
       db.setSyncState('priorityVersion', '1');
+      db.setSyncState('dueDateVersion', '1');
       db.setSyncState('mentionsVersion', `1:${me.id}`);
     }
     stats.completedAt = now;

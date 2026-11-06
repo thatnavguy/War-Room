@@ -7,6 +7,7 @@ currently assigned, previously assigned, created, edited, commented, or mentione
 
 On Windows, double-click `start-dashboard.bat` to start the dashboard and open it
 in your browser. The first run installs the required packages.
+If startup fails, check `data\dashboard-error.log` and `data\dashboard-output.log` for details.
 
 1. `npm install`
 2. `npm start` → http://localhost:4073
@@ -23,21 +24,33 @@ The setup page writes to the same `.env` file.
 |---|---|---|
 | `PROJECTS` | all projects | Comma-separated project names to limit sync scope |
 | `PORT` | 4073 | Local server port |
-| `STALE_DAYS` | 14 | Days without update before an open item "needs attention" |
+| `STALE_DAYS` | 14 | Days without update before an open item assigned to you "needs attention" |
 | `LOOKBACK_DAYS` | 365 | How far back the first sync deep-scans for your edits/comments |
 
 ## Usage
 
 - Click **Sync** to incrementally fetch new/changed items. The first sync is the
   heaviest; later syncs only fetch what changed since the watermark.
+- **Needs attention** only includes open items currently assigned to you with no update for the configured number of days.
+  It shows the five oldest items first. Its count and summary count use the same rule.
+  Work assigned to someone else stays in the main work list, not this section.
+  Each row includes its priority level. Missing priorities appear as a dash.
+  Choose **View all** to expand the list in place, or **Show fewer** to return to five items.
+  This does not change your work filters.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
-- Filter by project, type, state, iteration, priority level, and date range.
+- Filter by project, type, state, priority level, label, and assignment to you.
+  Iteration and From/To filters are no longer shown. Older saved views ignore those removed filters.
+- The work list shows **Due date** instead of Iteration.
+  Dates due today are amber. Overdue dates are red. Both include a text label.
+  Future dates use normal text. Items without a due date show a dash.
+  Dates are compared using your computer's local calendar day.
+  Restart the dashboard and sync once after upgrading to load due dates for existing tracked items.
 - Save a set of search and filter settings as a named view, then choose it to use those settings again.
   Saved views stay in this browser. Select a view and choose **Delete view** to remove it.
 - Labels (Azure DevOps tags) appear beneath titles in the list and in item details.
   The **Label** filter lists labels from touched or mentioned work and matches a whole label, not part of its name.
-  Project and iteration filters only list values from items you have touched or been mentioned on, including closed items.
+  The Project filter only lists values from items you have touched or been mentioned on, including closed items.
   Search and filters stay selected when you return from a work item or reload the page in the same tab.
   Use **Clear filters** to reset them.
 - Priority level appears in item details, the work-item list, and its own dashboard filter.
