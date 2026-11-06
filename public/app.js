@@ -402,8 +402,8 @@ async function changeVisibility(item, hidden, button) {
     }
     await loadSummary();
     await Promise.all([loadItems(), loadAttention()]);
-    if (hidden) status.querySelector('button')?.focus();
-    else $('#f-hidden').focus();
+    if (hidden) status.querySelector('button')?.focus({ preventScroll: true });
+    else $('#f-hidden').focus({ preventScroll: true });
   } catch (error) {
     status.textContent = error.message || 'Could not change item visibility. Try again.';
     status.classList.add('inline-error');

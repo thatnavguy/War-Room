@@ -19,6 +19,12 @@ function dashboard(fetch) {
       children: [],
       attributes: {},
       listeners: {},
+      classList: {
+        add() {},
+        remove() {},
+      },
+      querySelector() { return this.children.find((child) => child.type === 'button'); },
+      focus(options) { this.focusOptions = options; },
       addEventListener(name, handler) { this.listeners[name] = handler; },
       replaceChildren(...children) { this.children = children; },
       appendChild(child) { this.children.push(child); },
@@ -53,6 +59,29 @@ function dashboard(fetch) {
     toggle: () => elements.get('#show-attention').listeners.click(),
     evaluate: (script) => vm.runInContext(script, context),
   };
+}
+
+for (const hidden of [true, false]) {
+  test(`${hidden ? 'Hide' : 'Restore'} moves focus without scrolling after refreshing the list`, async () => {
+    const page = dashboard(async () => ({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ hidden }),
+    }));
+    page.evaluate(`
+      const refreshed = [];
+      loadSummary = async () => refreshed.push('summary');
+      loadItems = async () => refreshed.push('items');
+      loadAttention = async () => refreshed.push('attention');
+    `);
+    await page.evaluate(`changeVisibility({ id: 1, external_id: 123 }, ${hidden}, document.createElement('button'))`);
+    const focusTarget = hidden
+      ? page.elements.get('#visibility-status').children[0]
+      : page.elements.get('#f-hidden');
+    assert.equal(focusTarget.focusOptions.preventScroll, true);
+    assert.equal(page.evaluate("refreshed.join(',')"), 'summary,items,attention');
+    assert.match(page.elements.get('#visibility-status').textContent, hidden ? /hidden/ : /restored/);
+  });
 }
 
 test('old session filters and saved views no longer apply iteration or date constraints', async () => {
