@@ -330,6 +330,105 @@ function trunc(s) {
   return t.length > 80 ? t.slice(0, 80) + '…' : t;
 }
 
+function setupNotes(id) {
+  const box = $('#note-text');
+  const status = $('#note-status');
+  let timer = null;
+  let saved = '';
+  let version = 0;
+
+  async function save() {
+    clearTimeout(timer);
+    timer = null;
+    const text = box.value;
+    if (text === saved) return;
+    const mine = ++version;
+    status.textContent = 'Saving…';
+    try {
+      const res = await fetch(`/api/items/${encodeURIComponent(id)}/note`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: text }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      saved = text;
+      if (mine === version) status.textContent = body.updated_at ? `Saved ${fmtDate(body.updated_at)}` : '';
+    } catch (err) {
+      status.textContent = `Could not save note: ${err.message}`;
+    }
+  }
+
+  const rendered = $('#note-rendered');
+  const setMode = async (preview) => {
+    $('#note-write').setAttribute('aria-pressed', String(!preview));
+    $('#note-preview').setAttribute('aria-pressed', String(preview));
+    box.hidden = preview;
+    rendered.hidden = !preview;
+    if (!preview) return;
+    await save();
+    rendered.textContent = 'Rendering…';
+    try {
+      const res = await fetch('/api/note-preview', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: box.value }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || res.statusText);
+      if (body.html) renderRichText(rendered, body.html);
+      else rendered.textContent = 'Nothing to preview.';
+    } catch (err) {
+      rendered.textContent = `Could not render note: ${err.message}`;
+    }
+  };
+  $('#note-write').addEventListener('click', () => setMode(false));
+  $('#note-preview').addEventListener('click', () => setMode(true));
+
+  async function uploadImages(files) {
+    for (const file of files) {
+      status.textContent = 'Uploading image…';
+      try {
+        const res = await fetch(`/api/items/${encodeURIComponent(id)}/note-images`, {
+          method: 'POST', headers: { 'Content-Type': file.type }, body: file,
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || res.statusText);
+        const md = `\n![image](${body.url})\n`;
+        const pos = box.selectionEnd ?? box.value.length;
+        box.value = box.value.slice(0, pos) + md + box.value.slice(pos);
+        box.selectionStart = box.selectionEnd = pos + md.length;
+        status.textContent = '';
+        await save();
+      } catch (err) {
+        status.textContent = `Could not add image: ${err.message}`;
+      }
+    }
+  }
+  const imageFiles = (dt) => [...(dt?.files || [])].filter((f) => f.type.startsWith('image/'));
+  box.addEventListener('paste', (e) => {
+    const files = imageFiles(e.clipboardData);
+    if (files.length) { e.preventDefault(); uploadImages(files); }
+  });
+  box.addEventListener('dragover', (e) => { if (imageFiles(e.dataTransfer).length || [...(e.dataTransfer?.items || [])].some((i) => i.type.startsWith('image/'))) e.preventDefault(); });
+  box.addEventListener('drop', (e) => {
+    const files = imageFiles(e.dataTransfer);
+    if (files.length) { e.preventDefault(); uploadImages(files); }
+  });
+
+  box.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(save, 600); });
+  box.addEventListener('blur', save);
+  window.addEventListener('pagehide', () => {
+    if (box.value === saved) return;
+    fetch(`/api/items/${encodeURIComponent(id)}/note`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: box.value }), keepalive: true,
+    });
+  });
+
+  fetch(`/api/items/${encodeURIComponent(id)}/note`).then((r) => r.json()).then((n) => {
+    if (box.value === '') { box.value = n.note || ''; saved = box.value; }
+    status.textContent = n.updated_at ? `Saved ${fmtDate(n.updated_at)}` : '';
+  }).catch((err) => { status.textContent = `Could not load note: ${err.message}`; });
+}
+
+setupNotes(new URLSearchParams(location.search).get('id'));
+
 load().catch((err) => {
   $('#history-status').textContent = `Could not load this work item: ${err.message}`;
   $('#links-status').textContent = `Could not load this work item: ${err.message}`;

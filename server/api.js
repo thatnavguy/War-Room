@@ -5,6 +5,7 @@ const db = require('./db');
 const sync = require('./sync');
 const config = require('./config');
 const ado = require('./ado');
+const { renderMarkdown } = require('./markdown');
 const { getProvider, listProviders, describeItem } = require('./providers');
 
 const router = express.Router();
@@ -126,6 +127,51 @@ router.post('/items/:id/visibility', (req, res) => {
   }
   const result = db.setItemHidden(id, req.body.hidden);
   res.status(result.status || 200).json(result);
+});
+
+const renderNote = (note) => renderMarkdown(note, '', { noteImages: true });
+
+router.get('/items/:id/note', (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).json({ error: 'A valid work-item ID is required.' });
+  const result = db.getItemNote(id);
+  res.json({ ...result, html: renderNote(result.note) });
+});
+
+router.post('/note-preview', (req, res) => {
+  const note = req.body?.note;
+  if (typeof note !== 'string' || note.length > 100000) return res.status(400).json({ error: 'A note string is required.' });
+  res.json({ html: renderNote(note) });
+});
+
+const NOTE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
+router.post('/items/:id/note-images', express.raw({ type: NOTE_IMAGE_TYPES, limit: '10mb' }), (req, res) => {
+  const id = Number(req.params.id);
+  const mime = (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+  if (!Number.isSafeInteger(id) || id <= 0 || !NOTE_IMAGE_TYPES.includes(mime) || !Buffer.isBuffer(req.body) || !req.body.length) {
+    return res.status(400).json({ error: 'A valid work-item ID and a PNG, JPEG, GIF or WebP image (max 10 MB) are required.' });
+  }
+  const result = db.addNoteImage(id, mime, req.body);
+  if (result.error) return res.status(result.status || 400).json(result);
+  res.json({ id: result.id, url: `/api/note-images/${result.id}` });
+});
+
+router.get('/note-images/:id', (req, res) => {
+  const image = db.getNoteImage(Number(req.params.id));
+  if (!image) return res.status(404).json({ error: 'Not found' });
+  res.set({ 'Content-Type': image.mime, 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=86400' });
+  res.send(image.data);
+});
+
+router.put('/items/:id/note', (req, res) => {
+  const id = Number(req.params.id);
+  const note = req.body?.note;
+  if (!Number.isSafeInteger(id) || id <= 0 || typeof note !== 'string' || note.length > 100000) {
+    return res.status(400).json({ error: 'A valid work-item ID and a note string (max 100,000 characters) are required.' });
+  }
+  const result = db.setItemNote(id, note);
+  res.status(result.status || 200).json(result.error ? result : { ...result, html: renderNote(result.note) });
 });
 
 router.get('/items/:id', (req, res) => {
