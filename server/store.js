@@ -50,6 +50,18 @@ function createStore(filename, legacyScope = '') {
     work_item_id INTEGER PRIMARY KEY,
     hidden_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS item_notes (
+    work_item_id INTEGER PRIMARY KEY,
+    note TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS note_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    work_item_id INTEGER NOT NULL,
+    mime TEXT NOT NULL,
+    data BLOB NOT NULL,
+    created_at TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS latest_comment_mentions (
     work_item_id INTEGER PRIMARY KEY,
     identity_id TEXT NOT NULL,
@@ -207,6 +219,34 @@ function createStore(filename, legacyScope = '') {
     db.prepare(`INSERT INTO latest_comment_mentions VALUES (?, ?, ?)
       ON CONFLICT(work_item_id) DO UPDATE SET identity_id = excluded.identity_id,
       mentions_me = excluded.mentions_me`).run(id, identityId.toLowerCase(), Number(mentionsMe));
+  }
+
+  function getItemNote(id) {
+    const row = db.prepare('SELECT note, updated_at FROM item_notes WHERE work_item_id = ?').get(id);
+    return { note: row ? row.note : '', updated_at: row ? row.updated_at : null };
+  }
+
+  function setItemNote(id, note) {
+    if (!db.prepare('SELECT 1 FROM work_items WHERE id = ?').get(id)) return { error: 'Work item not found.', status: 404 };
+    if (!note.trim()) {
+      db.prepare('DELETE FROM item_notes WHERE work_item_id = ?').run(id);
+      return { note: '', updated_at: null };
+    }
+    const updated_at = new Date().toISOString();
+    db.prepare(`INSERT INTO item_notes (work_item_id, note, updated_at) VALUES (?, ?, ?)
+      ON CONFLICT(work_item_id) DO UPDATE SET note = excluded.note, updated_at = excluded.updated_at`).run(id, note, updated_at);
+    return { note, updated_at };
+  }
+
+  function addNoteImage(workItemId, mime, data) {
+    if (!db.prepare('SELECT 1 FROM work_items WHERE id = ?').get(workItemId)) return { error: 'Work item not found.', status: 404 };
+    const info = db.prepare('INSERT INTO note_images (work_item_id, mime, data, created_at) VALUES (?, ?, ?, ?)')
+      .run(workItemId, mime, data, new Date().toISOString());
+    return { id: Number(info.lastInsertRowid) };
+  }
+
+  function getNoteImage(id) {
+    return db.prepare('SELECT mime, data FROM note_images WHERE id = ?').get(id) || null;
   }
 
   function setItemHidden(id, hidden) {
@@ -425,6 +465,10 @@ function createStore(filename, legacyScope = '') {
     identities,
     latestSyncWatermark,
     setItemHidden,
+    getItemNote,
+    setItemNote,
+    addNoteImage,
+    getNoteImage,
     setLatestCommentMention,
     close: () => db.close(),
   };

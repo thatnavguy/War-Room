@@ -546,3 +546,12 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 }
 
 .connection-status { font-size: 13px; font-weight: 500; color: var(--muted, #5b6b7f); margin-left: 6px; }
+
+.note-text { width: 100%; box-sizing: border-box; min-height: 120px; padding: 10px 12px; font: inherit; line-height: 1.5; border: 1px solid var(--line, #c9d3de); border-radius: 8px; resize: vertical; background: #fff; color: inherit; }
+
+.note-tabs { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.note-tab { font: inherit; padding: 4px 12px; border: 1px solid var(--line, #c9d3de); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.note-tab[aria-pressed="true"] { background: var(--rail, #10243a); color: var(--rail-ink, #fff); }
+.note-tabs small { margin-left: auto; }
+.note-rendered { min-height: 120px; padding: 10px 12px; border: 1px solid var(--line, #c9d3de); border-radius: 8px; }
+.note-rendered img { max-width: 100%; }

@@ -101,3 +101,29 @@ test('latest comment means the last real comment, not an earlier mention or late
   assert.equal(latestCommentMentionsMe([{ ...first, fields: { 'System.History': { newValue: 'Me' } } }], me), false);
   assert.equal(latestCommentMentionsMe([], me), false);
 });
+
+test('private notes are stored locally, persist, and clear when emptied', (t) => {
+  const { store, filename, save } = fixture(t);
+  const id = save('1');
+  assert.deepEqual(store.getItemNote(id), { note: '', updated_at: null });
+  assert.equal(store.setItemNote(id, 'secret').note, 'secret');
+  assert.equal(store.setItemNote(999, 'x').status, 404);
+  const reopened = createStore(filename);
+  try { assert.equal(reopened.getItemNote(id).note, 'secret'); } finally { reopened.close(); }
+  store.setItemNote(id, '  ');
+  assert.equal(store.getItemNote(id).note, '');
+});
+
+test('note images are stored locally and rendered only for local image URLs', (t) => {
+  const { store, save } = fixture(t);
+  const { renderMarkdown } = require('./markdown');
+  const id = save('1');
+  const added = store.addNoteImage(id, 'image/png', Buffer.from([1, 2, 3]));
+  assert.deepEqual([...store.getNoteImage(added.id).data], [1, 2, 3]);
+  assert.equal(store.addNoteImage(999, 'image/png', Buffer.from([1])).status, 404);
+  const opts = { noteImages: true };
+  assert.match(renderMarkdown(`![x](/api/note-images/${added.id})`, '', opts), /<img src="\/api\/note-images\/\d+"/);
+  assert.doesNotMatch(renderMarkdown('![x](https://evil.example/a.png)', '', opts), /<img/);
+  assert.doesNotMatch(renderMarkdown(`![x](/api/note-images/${added.id})`), /<img/);
+  assert.doesNotMatch(renderMarkdown('<img src=x onerror=alert(1)> **b**', '', opts), /<img/);
+});
