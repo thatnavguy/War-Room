@@ -240,7 +240,15 @@ button:disabled { cursor: wait; opacity: .68; }
 .summary-item span { color: var(--muted); font-size: 12px; }
 button.summary-item { padding: 0; border: 0; background: none; cursor: pointer; font: inherit; }
 button.summary-item:hover span { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.summary-attention strong { color: var(--rust); }
+.summary-attention strong { color: var(--ink); }
+.summary-attention.has-attention {
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: var(--rust-bg);
+  color: var(--state-stale);
+}
+.summary-attention.has-attention span { color: inherit; }
+.summary-attention.has-attention strong { color: inherit; }
 .summary-divider { width: 1px; height: 18px; background: var(--line-strong); }
 .breakdown-details { position: relative; margin-left: auto; }
 .breakdown-details summary { color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 600; }

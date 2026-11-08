@@ -143,6 +143,7 @@ async function loadSummary() {
   $('#card-open').textContent = s.open;
   $('#card-recent').textContent = s.recentlyUpdated;
   $('#card-stale').textContent = s.stale;
+  $('#card-stale-button').classList.toggle('has-attention', s.stale > 0);
   $('#card-stale-label').textContent = `assigned to you, unchanged for ${s.staleDays}+ days`;
   $('#last-sync').textContent = s.lastSync
     ? `Last synced ${new Date(s.lastSync).toLocaleString()}`
