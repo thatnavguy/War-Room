@@ -560,7 +560,7 @@ $('#sync-btn').addEventListener('click', async () => {
     const stats = await res.json();
     if (!res.ok) throw new Error(stats.error || 'Sync failed');
     if (stats.errors && stats.errors.length > 0) {
-      throw new Error(`Sync completed with ${stats.errors.length} issue${stats.errors.length === 1 ? '' : 's'}. Check the server log for details.`);
+      throw new Error(`Sync completed with ${stats.errors.length} issue${stats.errors.length === 1 ? '' : 's'}: ${stats.errors.join('; ')}`);
     }
     await loadSummary();
     await loadFilters();

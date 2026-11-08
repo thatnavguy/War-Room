@@ -96,6 +96,18 @@ for (const hidden of [true, false]) {
   });
 }
 
+for (const errors of [['GitHub: request failed 422'], ['GitHub: request failed 403', 'Azure DevOps: request failed 401']]) {
+  test(`sync displays the actual details for ${errors.length} reported issues`, async () => {
+    const page = dashboard(async () => ({ ok: true, json: async () => ({ errors }) }));
+    page.evaluate(`$('#sync-btn').appendChild({ type: 'button', textContent: 'Sync now' });`);
+    await page.elements.get('#sync-btn').listeners.click();
+    const message = page.elements.get('#results-body').children[0].children[0].textContent;
+    assert.equal(message, `Sync completed with ${errors.length} issue${errors.length === 1 ? '' : 's'}: ${errors.join('; ')}`);
+    assert.equal(page.elements.get('#sync-btn').disabled, false);
+    assert.equal(page.elements.get('#sync-btn').children[0].textContent, 'Sync now');
+  });
+}
+
 test('old session filters and saved views no longer apply iteration or date constraints', async () => {
   const requests = [];
   const page = dashboard(async (url) => {

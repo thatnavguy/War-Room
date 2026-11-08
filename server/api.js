@@ -79,8 +79,10 @@ router.post('/sync', async (req, res) => {
   }
   try {
     const stats = await sync.runSync(req.body?.provider || undefined);
+    for (const error of stats.errors || []) console.error(`[sync] ${error}`);
     res.json(stats);
   } catch (err) {
+    console.error(`[sync] ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });

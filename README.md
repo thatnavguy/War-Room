@@ -27,6 +27,8 @@ Keep this project folder in place. If you move it, remove the old shortcut and r
 
 Prefer files? You can also copy `.env.example` to `.env` and fill it in manually.
 The setup page writes to the same `.env` file.
+Settings saved in this project's `.env` file take priority over inherited environment variables.
+Restart the dashboard after editing the file manually.
 
 ## Optional settings (.env)
 
@@ -44,6 +46,8 @@ The setup page writes to the same `.env` file.
 
 - Click **Sync** to incrementally fetch new/changed items. The first sync is the
   heaviest; later syncs only fetch what changed since the watermark.
+  If sync reports an issue, the dashboard shows the error details.
+  The server also logs them to `data\dashboard-error.log` when started with the Windows launcher.
 - The saved-view dropdown includes two built-in **preset views** that filter the work list:
   - **Daily digest** shows open items due today, overdue, or changed today.
   - **Needs attention** shows open items assigned to you with no update for the configured number of days.
@@ -115,7 +119,9 @@ are connected, each row links out to its own source, and **Sync now** syncs ever
 connected source in one pass.
 
 GitHub issues and pull requests are discovered with the search API (`assignee:@me`,
-`author:@me`, `involves:@me` since the last watermark). An item is unique by provider,
+`author:@me`, `involves:@me` since the last watermark).
+Each search runs separately for `is:issue` and `is:pull-request`, as GitHub requires.
+Both types appear in the same feed. An item is unique by provider,
 source scope, and external ID. For Azure DevOps, the scope is the organization URL;
 for GitHub it is the host plus repository (`github.com/owner/repo`), so issue numbers
 never collide across repositories. Sync checkpoints and profile names are kept

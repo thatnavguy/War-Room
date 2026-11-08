@@ -33,20 +33,85 @@ test('repoFromApiUrl extracts owner/repo from the search payload', () => {
   assert.equal(github.repoFromApiUrl(''), '');
 });
 
-test('searchIssues combines qualifiers with configured repositories and paginates', async (t) => {
+test('searchIssues searches both item types with repository filters and independent pagination', async (t) => {
   withGitHubConfig(t, { ghRepos: ['octo/one', 'octo/two'] });
   const queries = [];
   withFetch(t, async (url) => {
     const parsed = new URL(url);
-    queries.push(parsed.searchParams.get('q'));
+    const query = parsed.searchParams.get('q');
+    queries.push(query);
+    assert.match(query, /is:(issue|pull-request)/);
     const page = Number(parsed.searchParams.get('page'));
-    const items = page === 1 ? Array.from({ length: 100 }, (_, i) => ({ number: i })) : [{ number: 100 }];
+    const items = query.includes('is:pull-request')
+      ? [{ number: 200, pull_request: {} }]
+      : page === 1 ? Array.from({ length: 100 }, (_, i) => ({ number: i })) : [{ number: 100 }];
     return { ok: true, json: async () => ({ items, incomplete_results: false }) };
   });
   const { items, incomplete } = await github.searchIssues('involves:@me updated:>=2026-01-01');
-  assert.equal(items.length, 101);
+  assert.equal(items.length, 102);
+  assert.ok(items.some((item) => item.pull_request));
   assert.equal(incomplete, false);
-  assert.match(queries[0], /involves:@me updated:>=2026-01-01 repo:octo\/one repo:octo\/two/);
+  assert.deepEqual(queries, [
+    'involves:@me updated:>=2026-01-01 is:issue repo:octo/one repo:octo/two',
+    'involves:@me updated:>=2026-01-01 is:issue repo:octo/one repo:octo/two',
+    'involves:@me updated:>=2026-01-01 is:pull-request repo:octo/one repo:octo/two',
+  ]);
+});
+
+for (const qualifiers of ['assignee:@me', 'author:@me']) {
+  test(`searchIssues includes an item type for ${qualifiers} without repository filters`, async (t) => {
+    withGitHubConfig(t);
+    const queries = [];
+    withFetch(t, async (url) => {
+      queries.push(new URL(url).searchParams.get('q'));
+      return { ok: true, json: async () => ({ items: [], incomplete_results: false }) };
+    });
+    assert.deepEqual(await github.searchIssues(qualifiers), { items: [], incomplete: false });
+    assert.deepEqual(queries, [`${qualifiers} is:issue`, `${qualifiers} is:pull-request`]);
+  });
+}
+
+test('searchIssues preserves incomplete results from either type or an earlier page', async (t) => {
+  withGitHubConfig(t);
+  withFetch(t, async (url) => {
+    const parsed = new URL(url);
+    const firstIssuePage = parsed.searchParams.get('q').includes('is:issue') && parsed.searchParams.get('page') === '1';
+    return {
+      ok: true,
+      json: async () => ({
+        items: firstIssuePage ? Array.from({ length: 100 }, (_, number) => ({ number })) : [],
+        incomplete_results: firstIssuePage,
+      }),
+    };
+  });
+  assert.equal((await github.searchIssues('assignee:@me')).incomplete, true);
+});
+
+test('searchIssues reports the result cap without skipping the other item type', async (t) => {
+  withGitHubConfig(t);
+  const requests = [];
+  withFetch(t, async (url) => {
+    const parsed = new URL(url);
+    requests.push(parsed);
+    const items = parsed.searchParams.get('q').includes('is:issue')
+      ? Array.from({ length: 100 }, (_, number) => ({ number }))
+      : [{ number: 1001, pull_request: {} }];
+    return { ok: true, json: async () => ({ items, incomplete_results: false }) };
+  });
+  const result = await github.searchIssues('assignee:@me');
+  assert.equal(result.incomplete, true);
+  assert.equal(result.items.length, 1001);
+  assert.equal(requests.length, 11);
+  assert.match(requests.at(-1).searchParams.get('q'), /is:pull-request/);
+  assert.equal(requests.at(-1).searchParams.get('page'), '1');
+});
+
+test('searchIssues surfaces GitHub failures instead of returning a partial success', async (t) => {
+  withGitHubConfig(t);
+  withFetch(t, async (url) => new URL(url).searchParams.get('q').includes('is:issue')
+    ? { ok: true, json: async () => ({ items: [], incomplete_results: false }) }
+    : { ok: false, status: 403, text: async () => 'Resource not accessible' });
+  await assert.rejects(github.searchIssues('assignee:@me'), /GitHub request failed 403.*Resource not accessible/);
 });
 
 test('getMyIdentity requires a login', async (t) => {

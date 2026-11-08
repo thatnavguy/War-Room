@@ -2,9 +2,8 @@
 
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
-
 const ENV_PATH = path.join(__dirname, '..', '.env');
+require('dotenv').config({ path: ENV_PATH, override: true });
 
 function mergeEnv(content, values) {
   const remaining = new Map(Object.entries(values));

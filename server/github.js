@@ -39,14 +39,21 @@ function repoClause() {
 }
 
 async function searchIssues(qualifiers) {
-  const q = [qualifiers, repoClause()].filter(Boolean).join(' ');
   const items = [];
-  for (let page = 1; page <= SEARCH_PAGE_LIMIT; page++) {
-    const data = await ghFetch(`/search/issues?q=${encodeURIComponent(q)}&per_page=100&page=${page}&sort=updated&order=desc`);
-    items.push(...(data.items || []));
-    if ((data.items || []).length < 100) return { items, incomplete: Boolean(data.incomplete_results) };
+  let incomplete = false;
+  // GitHub requires a single item type per search; fetch both to keep the feed unified.
+  for (const type of ['issue', 'pull-request']) {
+    const q = [qualifiers, `is:${type}`, repoClause()].filter(Boolean).join(' ');
+    for (let page = 1; page <= SEARCH_PAGE_LIMIT; page++) {
+      const data = await ghFetch(`/search/issues?q=${encodeURIComponent(q)}&per_page=100&page=${page}&sort=updated&order=desc`);
+      const pageItems = data.items || [];
+      items.push(...pageItems);
+      incomplete ||= Boolean(data.incomplete_results);
+      if (pageItems.length < 100) break;
+      if (page === SEARCH_PAGE_LIMIT) incomplete = true;
+    }
   }
-  return { items, incomplete: true };
+  return { items, incomplete };
 }
 
 function repoFromApiUrl(repositoryUrl) {
