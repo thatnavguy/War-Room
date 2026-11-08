@@ -67,7 +67,9 @@ const githubProvider = {
   },
   sanitizeRichText(markdown, item) {
     const meLogin = item ? require('./db').getSyncState('meDisplayName', 'github', item.source_scope) : '';
-    return require('./markdown').renderMarkdown(markdown, meLogin || '');
+    return require('./markdown').renderMarkdown(markdown, meLogin || '', {
+      githubImages: true, githubHost: config.ghHost,
+    });
   },
 };
 

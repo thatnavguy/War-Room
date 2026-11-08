@@ -208,7 +208,7 @@ async function getHistory(item, meLogin) {
       rev: 0,
       date: comment.created_at || null,
       by: comment.user ? comment.user.login : 'Unknown',
-      comment: renderMarkdown(comment.body || '', meLogin),
+      comment: renderMarkdown(comment.body || '', meLogin, { githubImages: true, githubHost: config.ghHost }),
       changes: [],
     });
   }

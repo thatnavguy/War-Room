@@ -29,7 +29,9 @@ function renderRichText(target, html) {
     image.addEventListener('error', () => {
       const message = document.createElement('p');
       message.className = 'image-error';
-      message.textContent = 'Could not load this screenshot. Check the source connection in Settings, then reload this page.';
+      message.textContent = image.referrerPolicy === 'no-referrer'
+        ? 'Could not load this image. Open the issue in GitHub and check that you can access it.'
+        : 'Could not load this screenshot. Check the source connection in Settings, then reload this page.';
       image.replaceWith(message);
     }, { once: true });
   }

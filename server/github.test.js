@@ -133,6 +133,43 @@ test('markdown rendering escapes HTML, keeps links safe, and highlights my login
   assert.equal(renderMarkdown(null), '');
 });
 
+test('GitHub image rendering supports uploaded images without trusting HTML attributes', () => {
+  const asset = 'https://github.com/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4';
+  const opts = { githubImages: true, githubHost: 'github.com' };
+  const html = renderMarkdown(`<img width="1727" height="1269" alt="Image" src="${asset}" onerror="alert(1)" />\n\n![Screenshot](${asset})`, '', opts);
+  assert.equal((html.match(/<img /g) || []).length, 2);
+  assert.match(html, new RegExp(`<img src="${asset}" alt="Image" loading="lazy" referrerpolicy="no-referrer">`));
+  assert.match(html, /alt="Screenshot"/);
+  assert.doesNotMatch(html, /onerror|width=|height=/);
+  assert.match(renderMarkdown('![old](https://user-images.githubusercontent.com/123/abc-123.png)', '', opts), /<img /);
+  assert.doesNotMatch(renderMarkdown(`<img src="${asset}">`), /<img /);
+  assert.doesNotMatch(renderMarkdown(`\`<img src="${asset}">\``, '', opts), /<img /);
+  assert.doesNotMatch(renderMarkdown(`\`\`\`html\n<img src="${asset}">\n\`\`\``, '', opts), /<img /);
+});
+
+test('GitHub image rendering rejects unsafe and untrusted sources', () => {
+  const opts = { githubImages: true, githubHost: 'github.com' };
+  for (const url of [
+    'https://attacker.example/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4',
+    'https://github.com.attacker.example/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4',
+    'https://github.com/other/path',
+    'https://github.com/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4?redirect=evil',
+    'javascript:alert(1)',
+    'data:image/svg+xml,test',
+  ]) {
+    assert.doesNotMatch(renderMarkdown(`<img src="${url}">`, '', opts), /<img /);
+    assert.doesNotMatch(renderMarkdown(`![image](${url})`, '', opts), /<img /);
+  }
+  assert.doesNotMatch(renderMarkdown('<img data-src="https://github.com/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4">', '', opts), /<img /);
+});
+
+test('GitHub provider renders uploaded images in issue descriptions', (t) => {
+  withGitHubConfig(t);
+  const provider = require('./providers').getProvider('github');
+  const html = provider.sanitizeRichText('<img src="https://github.com/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4">');
+  assert.match(html, /<img src="https:\/\/github\.com\/user-attachments\/assets\//);
+});
+
 test('GitHub sync discovers items, records touches, and scans comments for mentions', async (t) => {
   const storePath = require.resolve('./db');
   const syncPath = require.resolve('./github-sync');
@@ -236,7 +273,7 @@ test('GitHub history combines comments and events into revisions', async (t) => 
   withGitHubConfig(t);
   Object.assign(github, {
     getComments: async () => [
-      { user: { login: 'me' }, body: '**hello**', created_at: '2026-02-01T00:00:00Z' },
+      { user: { login: 'me' }, body: '**hello**\n\n<img src="https://github.com/user-attachments/assets/763ced12-91f0-42f1-9988-628686fca6d4">', created_at: '2026-02-01T00:00:00Z' },
     ],
     getEvents: async () => [
       { event: 'assigned', actor: { login: 'boss' }, assignee: { login: 'me' }, created_at: '2026-02-02T00:00:00Z' },
@@ -251,6 +288,7 @@ test('GitHub history combines comments and events into revisions', async (t) => 
   assert.equal(revisions.length, 2);
   assert.equal(revisions[0].by, 'boss');
   assert.deepEqual(revisions[0].changes, [{ field: 'Assigned to', from: null, to: 'me' }]);
-  assert.equal(revisions[1].comment, '<p><strong>hello</strong></p>');
+  assert.match(revisions[1].comment, /<p><strong>hello<\/strong><\/p>/);
+  assert.match(revisions[1].comment, /<img src="https:\/\/github\.com\/user-attachments\/assets\//);
   assert.ok(revisions[0].rev > revisions[1].rev);
 });
