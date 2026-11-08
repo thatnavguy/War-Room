@@ -127,6 +127,7 @@ async function runSync() {
     if (mentionsBackfill) {
       for (const scope of db.sourceScopes('github')) {
         const repo = scope.slice(config.ghHost.length + 1);
+        if (config.ghRepos.length > 0 && !config.ghRepos.includes(repo)) continue;
         for (const externalId of db.sourceItemIds('github', scope)) {
           deepScan.push({
             raw: { repository_url: `${github.apiBase()}/repos/${repo}`, number: externalId },

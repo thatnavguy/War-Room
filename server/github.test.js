@@ -186,19 +186,20 @@ test('GitHub sync discovers items, records touches, and scans comments for menti
   const syncPath = require.resolve('./github-sync');
   const originalStore = require.cache[storePath];
   const originalGithub = { ...github };
-  withGitHubConfig(t);
+  withGitHubConfig(t, { ghRepos: ['octo/one', 'octo/two'] });
 
   const state = new Map();
   const saved = [];
   const touches = [];
   const latestComments = [];
+  const commentRequests = [];
   const store = {
     getSyncState: (key, provider, scope) => state.get(`${provider}|${scope}|${key}`) || null,
     setSyncState: (key, value, provider, scope) => state.set(`${provider}|${scope}|${key}`, value),
     saveItem: (item) => { saved.push(item); return saved.length; },
     saveTouch: (id, type, date) => touches.push({ id, type, date }),
-    sourceScopes: () => [],
-    sourceItemIds: () => [],
+    sourceScopes: () => ['github.com/octo/old-repo'],
+    sourceItemIds: () => ['99'],
     findItemId: () => null,
     setLatestCommentMention: (id, identityId, mentioned) => latestComments.push({ id, identityId, mentioned }),
   };
@@ -228,6 +229,7 @@ test('GitHub sync discovers items, records touches, and scans comments for menti
       return { items: [assignedItem, prItem], incomplete: false };
     },
     getComments: async (repo, number) => {
+      commentRequests.push({ repo, number: Number(number) });
       if (repo === 'octo/one' && Number(number) === 1) {
         return [
           { user: { login: 'other' }, body: 'cc @me', created_at: '2026-02-02T00:00:00Z' },
@@ -251,6 +253,7 @@ test('GitHub sync discovers items, records touches, and scans comments for menti
   assert.equal(stats.errors.length, 0);
   assert.equal(stats.candidates, 3);
   assert.equal(stats.upserted, 3);
+  assert.ok(!commentRequests.some((request) => request.repo === 'octo/old-repo'));
 
   const savedAssigned = saved.find((item) => item.external_id === '1');
   assert.equal(savedAssigned.provider, 'github');
