@@ -10,14 +10,16 @@ async function load() {
   $('#pat-hint').textContent = cfg.azureDevOps.patSet
     ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
     : 'No token saved yet.';
-  $('#ado-status').textContent = cfg.azureDevOps.configured ? '· Connected' : '· Not connected';
+  $('#ado-status').textContent = cfg.azureDevOps.configured ? 'Connected' : 'Not connected';
+  $('#ado-status').classList.toggle('is-connected', cfg.azureDevOps.configured);
 
   $('#gh-repos').value = cfg.github.repos || '';
   $('#gh-host').value = cfg.github.host || 'github.com';
   $('#gh-token-hint').textContent = cfg.github.tokenSet
     ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
     : 'No token saved yet.';
-  $('#github-status').textContent = cfg.github.configured ? '· Connected' : '· Not connected';
+  $('#github-status').textContent = cfg.github.configured ? 'Connected' : 'Not connected';
+  $('#github-status').classList.toggle('is-connected', cfg.github.configured);
 
   $('#port').value = cfg.port;
   $('#stale-days').value = cfg.staleDays;

@@ -5,7 +5,7 @@ colors:
   page: "#f4f6f7"
   surface: "#ffffff"
   ink: "#162636"
-  muted: "#647586"
+  muted: "#60707f"
   line: "#d9e0e4"
   line-strong: "#c8d1d8"
   rail: "#10243a"
@@ -32,7 +32,7 @@ colors:
   row-hover: "#e7edf1"
   code-surface: "#edf1f3"
   history-surface: "#e9eff3"
-  form-placeholder: "#647586"
+  form-placeholder: "#60707f"
 typography:
   display:
     fontFamily: "Segoe UI, Helvetica Neue, Arial, sans-serif"
@@ -176,7 +176,7 @@ Deep navy anchors the shell and table headers; cool slate neutrals support the w
 - **Cool Work Surface** (`#f4f6f7`): Main background.
 - **White Surface** (`#ffffff`): Forms, fields, and content surfaces.
 - **Slate Ink** (`#162636`): Main text and headings.
-- **Muted Slate** (`#647586`): Supporting text and labels.
+- **Muted Slate** (`#60707f`): Supporting text and labels with accessible contrast on the cool work surface.
 - **Fine Rule** (`#d9e0e4`): Rows and section separators.
 - **Strong Rule** (`#c8d1d8`): Structural borders and control outlines.
 
