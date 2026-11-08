@@ -209,7 +209,9 @@ The dashboard order is heading and sync action, compact workload counts, then se
 
 Work-item details use the full workspace width for field values, descriptions, acceptance criteria, repro steps, and revision history. Rich text wraps within that space without a separate narrow-column limit.
 
-Work-item pages have a sticky section menu for quick jumps to available sections and an Open in Azure DevOps link. Section dividers separate long descriptions from activity. Every section uses the same navy heading bar, including Details and Why it’s in your work list. The Comments only filter sits inside the Comments & history heading bar.
+Work-item pages have a sticky section menu for quick jumps to available sections and an Open in Azure DevOps link. Every section uses the original navy heading bar, including Details and Why it’s in your work list. Supporting sections have a white content surface, a thin slate outline, and 32px of space above them so each section has a clear beginning and end. The Comments only filter sits inside the Comments & history heading bar.
+
+Attachments and Related links hide when they load successfully with no entries. Their section-menu links hide too. Loading and error messages stay visible. My notes and Comments & history remain available.
 
 The workspace uses Work sources and Connections as shared labels. Provider-specific forms keep their actual provider names.
 Item details identify the source, and the sticky menu uses Open in followed by that source's name.

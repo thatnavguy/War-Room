@@ -35,6 +35,11 @@ function renderRichText(target, html) {
   }
 }
 
+function setSectionVisible(sectionId, visible) {
+  $(`#${sectionId}`).hidden = !visible;
+  $(`#item-sections a[href="#${sectionId}"]`).hidden = !visible;
+}
+
 async function load() {
   const id = new URLSearchParams(location.search).get('id');
   if (!id) {
@@ -177,7 +182,9 @@ async function loadAttachments(id) {
       }
       list.appendChild(entry);
     }
+    setSectionVisible('sec-attachments', data.attachments.length > 0);
   } catch (err) {
+    setSectionVisible('sec-attachments', true);
     status.textContent = `Could not load attachments: ${err.message}. Check Settings and reload this page.`;
   }
 }
@@ -237,7 +244,9 @@ async function loadRelatedLinks(id) {
       group.appendChild(list);
       target.appendChild(group);
     }
+    setSectionVisible('sec-links', data.links.length > 0);
   } catch (err) {
+    setSectionVisible('sec-links', true);
     status.textContent = `Could not load related links: ${err.message}. Check the connection in Settings, then reload this page.`;
   }
 }
