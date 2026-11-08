@@ -134,6 +134,27 @@ test('due dates highlight today and overdue by local calendar day, but not futur
   assert.equal(classify('not a date', '2026-11-06'), '');
 });
 
+test('closed visibility and open-work focus filters switch without conflicting', async () => {
+  const requests = [];
+  const page = dashboard(async (url) => {
+    requests.push(url);
+    return { ok: true, json: async () => ({ items: [], total: 0 }) };
+  });
+  const focus = page.elements.get('#f-focus');
+  const visibility = page.elements.get('#f-hidden');
+  focus.value = 'attention';
+  visibility.value = 'closed';
+  visibility.listeners.change({ target: visibility });
+  await page.flush();
+  assert.equal(focus.value, '');
+  assert.equal(requests.at(-1), '/api/items?hidden=closed');
+  focus.value = 'digest';
+  focus.listeners.change({ target: focus });
+  await page.flush();
+  assert.equal(visibility.value, '');
+  assert.equal(requests.at(-1), '/api/items?focus=digest');
+});
+
 test('preset views are listed before saved views and filter the work list', async () => {
   const requests = [];
   const page = dashboard(async (url) => {

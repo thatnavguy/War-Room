@@ -120,6 +120,17 @@ test('getMyIdentity requires a login', async (t) => {
   await assert.rejects(github.getMyIdentity(), /did not return your login/);
 });
 
+test('GitHub 404 explains that the configured account or token may lack access', async (t) => {
+  withGitHubConfig(t);
+  withFetch(t, async () => ({ ok: false, status: 404, text: async () => '{"message":"Not Found"}' }));
+  await assert.rejects(github.getComments('owner/private-repo', 6), (error) => {
+    assert.match(error.message, /GitHub request failed 404/);
+    assert.match(error.message, /item may have been removed/);
+    assert.match(error.message, /account or token configured in Settings may not have access/);
+    return true;
+  });
+});
+
 test('markdown rendering escapes HTML, keeps links safe, and highlights my login', () => {
   const html = renderMarkdown('# Hi\n\n<script>alert(1)</script> **bold** `x < y`\n\n- [ok](https://example.com)\n- [bad](javascript:alert(1))\n\ncc @ThatBCGuy', 'thatbcguy');
   assert.ok(!html.includes('<script>'));

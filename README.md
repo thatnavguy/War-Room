@@ -106,7 +106,8 @@ Restart the dashboard after editing the file manually.
   Azure DevOps Git links open directly. GitHub artifact links use an internal repository ID,
   so they explicitly open the source work item in Azure DevOps instead of guessing a GitHub URL.
   Add or edit links in Azure DevOps; Mission Hall remains read-only.
-- Closed and Removed items are hidden everywhere.
+- Choose **Visibility: Closed items** to find tracked closed or removed items, including hidden ones.
+  Search and the other filters still apply. The open-work summary and focus views do not include closed items.
 
 Data lives in `data/devops-center.db` (SQLite). Nothing leaves your machine
 except read-only calls to your connected Azure DevOps org and GitHub host.

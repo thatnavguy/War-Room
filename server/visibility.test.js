@@ -51,6 +51,23 @@ test('hiding is local, persistent across sync/reopening, and excluded from summa
   assert.equal(store.queryItems({ hiddenOnly: true }).total, 0);
 });
 
+test('closed view finds tracked closed items without changing open or hidden views', (t) => {
+  const { store, save } = fixture(t);
+  const open = save('1', { state: 'Active', project: 'Alpha' });
+  const closed = save('2', { state: 'Closed', project: 'Alpha', is_closed: true });
+  const hidden = save('3', { state: 'Removed', project: 'Beta', is_closed: true });
+  store.setItemHidden(hidden, true);
+  store.saveItem({ provider: 'github', source_scope: 'github.com/example/repo', external_id: '4', state: 'Closed', is_closed: true });
+  assert.deepEqual(store.queryItems({}).items.map((item) => item.id), [open]);
+  assert.equal(store.queryItems({ hiddenOnly: true }).total, 0);
+  assert.deepEqual(new Set(store.queryItems({ closedOnly: true }).items.map((item) => item.id)), new Set([closed, hidden]));
+  assert.deepEqual(store.queryItems({ closedOnly: true, project: 'Beta', state: 'Removed' }).items.map((item) => item.id), [hidden]);
+  assert.deepEqual(store.queryItems({ closedOnly: true, search: '2' }).items.map((item) => item.id), [closed]);
+  assert.ok(store.getFilterValues().states.includes('Closed'));
+  assert.ok(store.getFilterValues().states.includes('Removed'));
+  assert.equal(store.getSummary(14).open, 1);
+});
+
 test('current assignment overrides a hide preference, and historical assignment alone does not', (t) => {
   const { store, save } = fixture(t);
   const id = save('1');

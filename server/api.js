@@ -112,6 +112,7 @@ router.get('/items', (req, res) => {
     touch: req.query.touch || '',
     assignedToMe: req.query.mine === '1',
     hiddenOnly: req.query.hidden === '1',
+    closedOnly: req.query.hidden === 'closed',
     focus: ['digest', 'attention'].includes(req.query.focus) ? req.query.focus : '',
     from: req.query.from || '',
     to: req.query.to || '',

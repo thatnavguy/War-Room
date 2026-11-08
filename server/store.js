@@ -261,7 +261,8 @@ function createStore(filename, legacyScope = '') {
   }
   
   function buildItemQuery(filters) {
-    const where = ['w.is_closed = 0', filters.hiddenOnly ? `${HIDDEN_ITEM} AND NOT ${REQUIRED_ITEM}` : VISIBLE_ITEM];
+    const where = [filters.closedOnly ? 'w.is_closed = 1' : 'w.is_closed = 0'];
+    if (!filters.closedOnly) where.push(filters.hiddenOnly ? `${HIDDEN_ITEM} AND NOT ${REQUIRED_ITEM}` : VISIBLE_ITEM);
     const params = {};
 
     if (filters.focus === 'attention') filters.assignedToMe = true;
@@ -392,7 +393,7 @@ function createStore(filename, legacyScope = '') {
         ORDER BY w.project
       `).all().map((row) => row.v),
       types: pick('type'),
-      states: db.prepare('SELECT DISTINCT state AS v FROM work_items WHERE is_closed = 0 ORDER BY state').all().map((r) => r.v),
+      states: pick('state'),
       providers: pick('provider'),
       labels: [...new Set(db.prepare(`
         SELECT w.tags FROM work_items w WHERE w.tags IS NOT NULL

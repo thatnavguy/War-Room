@@ -23,7 +23,10 @@ async function ghFetch(path) {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`GitHub request failed ${res.status} ${url}: ${text.slice(0, 300)}`);
+    const hint = res.status === 404
+      ? ' The item may have been removed, or the GitHub account or token configured in Settings may not have access to its repository.'
+      : '';
+    throw new Error(`GitHub request failed ${res.status} ${url}: ${text.slice(0, 300)}${hint}`);
   }
   return res.json();
 }

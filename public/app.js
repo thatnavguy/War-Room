@@ -232,7 +232,7 @@ async function loadItems() {
     const tr = document.createElement('tr');
     tr.className = 'work-row';
     tr.dataset.id = item.id;
-    if (staleCutoff && item.changed_date && new Date(item.changed_date) < staleCutoff) {
+    if (!item.is_closed && staleCutoff && item.changed_date && new Date(item.changed_date) < staleCutoff) {
       tr.classList.add('stale-row');
     }
     if (item.my_display_name && item.assigned_to === item.my_display_name) {
@@ -304,7 +304,7 @@ async function loadItems() {
           td.appendChild(group);
         }
       } else if (cell.kind === 'due') {
-        const status = dueDateStatus(cell.value);
+        const status = item.is_closed ? '' : dueDateStatus(cell.value);
         const due = document.createElement('span');
         due.className = 'due-date';
         due.textContent = fmtDate(cell.value);
@@ -367,7 +367,7 @@ async function loadItems() {
       if (protectedItem) return;
       changeVisibility(item, !restoring, visibilityButton);
     });
-    actions.appendChild(visibilityButton);
+    if (!item.is_closed) actions.appendChild(visibilityButton);
     tr.appendChild(actions);
 
     tr.addEventListener('click', (e) => {
@@ -432,7 +432,9 @@ searchInput.addEventListener('input', () => {
   saveFilters();
   debouncedLoad();
 });
-function onFilterChange() {
+function onFilterChange(event) {
+  if (event?.target === filterEls.hidden && filterEls.hidden.value === 'closed') filterEls.focus.value = '';
+  if (event?.target === filterEls.focus && filterEls.focus.value && filterEls.hidden.value === 'closed') filterEls.hidden.value = '';
   currentSavedViewId = '';
   renderSavedViews();
   loadItems().catch(showLoadError);
