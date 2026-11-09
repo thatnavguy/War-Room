@@ -4,6 +4,7 @@ const express = require('express');
 const db = require('./db');
 const sync = require('./sync');
 const config = require('./config');
+const autoSync = require('./auto-sync');
 const ado = require('./ado');
 const { renderMarkdown } = require('./markdown');
 const { getProvider, listProviders, describeItem } = require('./providers');
@@ -20,12 +21,14 @@ router.get('/config', (req, res) => {
       orgUrl: config.orgUrl,
       patSet: Boolean(config.pat),
       projects: config.projects.join(', '),
+      autoSyncMinutes: config.adoAutoSyncMinutes,
     },
     github: {
       configured: config.isGitHubConfigured(),
       tokenSet: Boolean(config.ghToken),
       repos: config.ghRepos.join(', '),
       host: config.ghHost,
+      autoSyncMinutes: config.ghAutoSyncMinutes,
     },
     port: config.port,
     staleDays: config.staleDays,
@@ -37,6 +40,12 @@ router.post('/config', (req, res) => {
   try {
     const body = req.body || {};
     const values = {};
+    for (const section of [body.azureDevOps, body.github]) {
+      const minutes = section?.autoSyncMinutes;
+      if (minutes !== undefined && (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440)) {
+        return res.status(400).json({ error: 'Auto-sync interval must be a whole number from 0 to 1440 minutes (0 turns it off).' });
+      }
+    }
     if (body.azureDevOps) {
       const section = body.azureDevOps;
       if (!section.orgUrl || !section.orgUrl.trim()) {
@@ -48,6 +57,7 @@ router.post('/config', (req, res) => {
       values.orgUrl = section.orgUrl;
       values.pat = section.pat;
       values.projects = section.projects;
+      values.adoAutoSyncMinutes = section.autoSyncMinutes;
     }
     if (body.github) {
       const section = body.github;
@@ -57,6 +67,7 @@ router.post('/config', (req, res) => {
       values.ghToken = section.ghToken;
       values.ghRepos = section.ghRepos;
       values.ghHost = section.ghHost;
+      values.ghAutoSyncMinutes = section.autoSyncMinutes;
     }
     if (body.general) {
       values.port = body.general.port;
@@ -67,6 +78,8 @@ router.post('/config', (req, res) => {
       return res.status(400).json({ error: 'Nothing to save. Send an azureDevOps, github, or general section.' });
     }
     const result = config.save(values);
+    if (values.adoAutoSyncMinutes !== undefined) autoSync.start('azure-devops');
+    if (values.ghAutoSyncMinutes !== undefined) autoSync.start('github');
     res.json({ saved: true, configured: config.isAnyConfigured(), portChanged: result.portChanged, port: config.port });
   } catch (err) {
     res.status(500).json({ error: err.message });

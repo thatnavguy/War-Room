@@ -7,6 +7,7 @@ async function load() {
 
   $('#org-url').value = cfg.azureDevOps.orgUrl || '';
   $('#projects').value = cfg.azureDevOps.projects || '';
+  $('#ado-auto-sync-minutes').value = cfg.azureDevOps.autoSyncMinutes;
   $('#pat-hint').textContent = cfg.azureDevOps.patSet
     ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
     : 'No token saved yet.';
@@ -15,6 +16,7 @@ async function load() {
 
   $('#gh-repos').value = cfg.github.repos || '';
   $('#gh-host').value = cfg.github.host || 'github.com';
+  $('#gh-auto-sync-minutes').value = cfg.github.autoSyncMinutes;
   $('#gh-token-hint').textContent = cfg.github.tokenSet
     ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
     : 'No token saved yet.';
@@ -63,6 +65,7 @@ wireForm('#ado-form', '#ado-save-status', () => ({
     orgUrl: $('#org-url').value,
     pat: $('#pat').value,
     projects: $('#projects').value,
+    autoSyncMinutes: Number($('#ado-auto-sync-minutes').value),
   },
 }));
 
@@ -71,6 +74,7 @@ wireForm('#github-form', '#github-save-status', () => ({
     ghToken: $('#gh-token').value,
     ghRepos: $('#gh-repos').value,
     ghHost: $('#gh-host').value,
+    autoSyncMinutes: Number($('#gh-auto-sync-minutes').value),
   },
 }));
 

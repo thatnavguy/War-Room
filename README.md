@@ -39,6 +39,8 @@ Restart the dashboard after editing the file manually.
 | `GH_TOKEN` | — | GitHub personal access token; enables the GitHub source |
 | `GH_REPOS` | all repos you are involved in | Comma-separated `owner/repo` entries to limit GitHub sync scope |
 | `GH_HOST` | github.com | GitHub Enterprise host |
+| `ADO_AUTO_SYNC_MINUTES` | 0 (off) | Minutes between automatic Azure DevOps syncs |
+| `GH_AUTO_SYNC_MINUTES` | 0 (off) | Minutes between automatic GitHub syncs |
 | `PORT` | 4073 | Local server port |
 | `STALE_DAYS` | 14 | Days without update before an open item assigned to you "needs attention" |
 | `LOOKBACK_DAYS` | 365 | How far back the first sync deep-scans for your edits/comments |
@@ -119,6 +121,16 @@ Azure DevOps and GitHub are both supported and can be connected at the same time
 The **Briefing Room** feed stays unified: a **Source** filter appears once multiple sources
 are connected, each row links out to its own source, and **Sync now** syncs every
 connected source in one pass.
+
+To sync automatically, open **Settings** and set **Auto-sync interval (minutes)**
+under each connection. For example, use 5 minutes for Azure DevOps and 15 for GitHub.
+Enter a whole number from 1 to 1440, or 0 to turn off that source's schedule.
+Save that connection's settings to apply the interval without restarting.
+
+Auto-sync runs while the local server is running, even when your browser is closed.
+The first run starts after the interval. It skips a source if that source is already syncing.
+Refresh **Briefing Room** to see newly synced items. Errors appear in the server terminal
+with an `auto-sync` prefix, and the next scheduled run tries again.
 
 GitHub issues and pull requests are discovered with the search API (`assignee:@me`,
 `author:@me`, `involves:@me` since the last watermark).

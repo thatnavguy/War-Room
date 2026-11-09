@@ -38,6 +38,11 @@
             <span>Projects <small>(optional; leave blank to include all projects)</small></span>
             <input id="projects" type="text" placeholder="Project names, separated by commas">
           </label>
+          <label class="form-field">
+            <span>Auto-sync interval (minutes)</span>
+            <input id="ado-auto-sync-minutes" type="number" min="0" max="1440" step="1" value="0" required aria-describedby="ado-auto-sync-hint">
+            <small id="ado-auto-sync-hint">Set 0 to turn off. Syncs Azure DevOps while the server is running. Changes apply when saved.</small>
+          </label>
           <div class="form-actions"><button type="submit" class="button button-primary">Save Azure DevOps settings</button><span id="ado-save-status" class="muted" role="status" aria-live="polite"></span></div>
         </form>
       </section>
@@ -56,6 +61,11 @@
           <label class="form-field">
             <span>Host <small>(optional; for GitHub Enterprise)</small></span>
             <input id="gh-host" type="text" placeholder="github.com">
+          </label>
+          <label class="form-field">
+            <span>Auto-sync interval (minutes)</span>
+            <input id="gh-auto-sync-minutes" type="number" min="0" max="1440" step="1" value="0" required aria-describedby="gh-auto-sync-hint">
+            <small id="gh-auto-sync-hint">Set 0 to turn off. Syncs GitHub while the server is running. Changes apply when saved.</small>
           </label>
           <div class="form-actions"><button type="submit" class="button button-primary">Save GitHub settings</button><span id="github-save-status" class="muted" role="status" aria-live="polite"></span></div>
         </form>

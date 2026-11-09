@@ -21,9 +21,28 @@ test('project settings override inherited values while unspecified settings keep
     assert.equal(config.ghHost, 'github.com');
     assert.equal(config.port, 4073);
     assert.equal(config.lookbackDays, 90);
+    assert.equal(config.adoAutoSyncMinutes, 0);
+    assert.equal(config.ghAutoSyncMinutes, 0);
     assert.equal(process.env.GH_TOKEN, 'saved-token');
     config.load();
     assert.equal(config.ghToken, 'saved-token');
+    config.save({ adoAutoSyncMinutes: 5, ghAutoSyncMinutes: 15 });
+    assert.equal(config.adoAutoSyncMinutes, 5);
+    assert.equal(config.ghAutoSyncMinutes, 15);
+    config.save({ adoAutoSyncMinutes: 0 });
+    assert.equal(config.adoAutoSyncMinutes, 0);
+    assert.equal(config.ghAutoSyncMinutes, 15);
+    const fs = require('node:fs');
+    const filename = ${JSON.stringify(path.join(directory, '.env'))};
+    assert.match(fs.readFileSync(filename, 'utf8'), /ADO_AUTO_SYNC_MINUTES=0/);
+    assert.match(fs.readFileSync(filename, 'utf8'), /GH_AUTO_SYNC_MINUTES=15/);
+    const saved = fs.readFileSync(filename, 'utf8');
+    for (const minutes of [-1, 0.5, 1441, '5', null, NaN]) {
+      assert.throws(() => config.save({ ghAutoSyncMinutes: minutes }), /whole number/);
+      assert.equal(fs.readFileSync(filename, 'utf8'), saved);
+    }
+    config.save({ ghAutoSyncMinutes: 1440 });
+    assert.equal(config.ghAutoSyncMinutes, 1440);
   `], {
     cwd: __dirname,
     env: {
@@ -33,6 +52,8 @@ test('project settings override inherited values while unspecified settings keep
       GH_HOST: 'inherited.example.com',
       PORT: '9999',
       LOOKBACK_DAYS: '90',
+      ADO_AUTO_SYNC_MINUTES: '0',
+      GH_AUTO_SYNC_MINUTES: '0',
     },
     encoding: 'utf8',
   });
