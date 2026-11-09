@@ -1,6 +1,10 @@
 node_modules/
 .env
 data/
+release/bin/
+release/obj/
+release/publish/
+release/package/
 .playwright-mcp/
 .impeccable/hook.cache.json
 .impeccable/questions/

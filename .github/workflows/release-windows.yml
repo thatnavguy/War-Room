@@ -1,0 +1,52 @@
+name: Windows release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Install production dependencies
+        run: npm ci --omit=dev
+
+      - name: Build launcher
+        run: dotnet publish release/Launcher.csproj --configuration Release --output release/publish
+
+      - name: Assemble portable release
+        shell: pwsh
+        run: |
+          $releaseDir = Join-Path $PWD "release\package"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+          Copy-Item "release\publish\WarRoomLauncher.exe" (Join-Path $releaseDir "War Room.exe")
+          Copy-Item "server" $releaseDir -Recurse
+          Get-ChildItem (Join-Path $releaseDir "server") -Filter "*.test.js" -File -Recurse | Remove-Item
+          Copy-Item "public" $releaseDir -Recurse
+          Copy-Item "node_modules" $releaseDir -Recurse
+          Copy-Item ".env.example" $releaseDir
+          $nodeVersion = node -p "process.version"
+          Invoke-WebRequest "https://nodejs.org/dist/$nodeVersion/win-x64/node.exe" -OutFile (Join-Path $releaseDir "node.exe")
+          Compress-Archive -Path (Join-Path $releaseDir "*") -DestinationPath "WarRoom-windows-x64.zip"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$env:GITHUB_REF_NAME" "WarRoom-windows-x64.zip" --generate-notes

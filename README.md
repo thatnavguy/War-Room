@@ -6,6 +6,22 @@ created, edited, commented, or mentioned in a comment. Connect one or both sourc
 
 ## Setup
 
+### Download for Windows
+
+1. Download `WarRoom-windows-x64.zip` from the
+   [latest release](https://github.com/thatnavguy/War-Room/releases/latest).
+2. Extract the full ZIP to a folder where you want to keep War Room.
+3. Double-click **War Room.exe**. It starts the local server and opens your browser.
+4. Keep the console window open while you use War Room. Press Ctrl+C in that
+   window to stop it.
+
+The ZIP includes everything needed to run War Room. You do not need to install
+Node.js or run `npm install`. Your settings and tracked work stay in the extracted
+folder. When updating, extract the new release over the same folder and keep
+your `.env` file and `data` folder.
+
+### Run from source
+
 On Windows, double-click `start-dashboard.bat` to start the dashboard and open it
 in your browser. The first run installs the required packages.
 If startup fails, check `data\dashboard-error.log` and `data\dashboard-output.log` for details.
