@@ -95,7 +95,7 @@ button:disabled { cursor: wait; opacity: .68; }
 }
 
 .brand-mark { display: grid; width: 30px; height: 30px; place-items: center; color: var(--rail-mark); }
-.brand-mark svg { width: 28px; height: 28px; }
+.brand-mark img { display: block; width: 30px; height: 30px; }
 
 .primary-nav { display: grid; gap: 5px; }
 
@@ -476,7 +476,7 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 @media (max-width: 960px) {
   .side-rail { position: static; width: auto; min-height: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 15px; }
   .brand { margin: 0 auto 0 0; font-size: 14px; }
-  .brand-mark, .brand-mark svg { width: 25px; height: 25px; }
+  .brand-mark, .brand-mark img { width: 25px; height: 25px; }
   .primary-nav { display: flex; gap: 4px; }
   .nav-link { min-height: 36px; gap: 6px; padding: 0 9px; font-size: 12px; }
   .nav-link svg { width: 16px; height: 16px; }

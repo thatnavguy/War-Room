@@ -7,5 +7,6 @@
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <AssemblyName>WarRoomLauncher</AssemblyName>
+    <ApplicationIcon>..\war-room.ico</ApplicationIcon>
   </PropertyGroup>
 </Project>

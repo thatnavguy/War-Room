@@ -43,11 +43,10 @@ if (-not (Test-Dashboard)) {
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $outputLog = Join-Path $logDirectory 'dashboard-output.log'
     $errorLog = Join-Path $logDirectory 'dashboard-error.log'
+    $serverCommand = "echo War Room running at $dashboardUrl & echo (Keep this window open while using the app. Close it to stop.) & npm start 1>`"$outputLog`" 2>`"$errorLog`""
     $server = Start-Process -FilePath 'cmd.exe' `
-        -ArgumentList @('/d', '/c', 'npm start') `
+        -ArgumentList @('/d', '/c', $serverCommand) `
         -WorkingDirectory $PSScriptRoot `
-        -RedirectStandardOutput $outputLog `
-        -RedirectStandardError $errorLog `
         -PassThru
 
     $started = $false

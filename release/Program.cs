@@ -88,7 +88,8 @@ internal static class Program
             }
 
             var url = $"http://localhost:{port}";
-            Console.WriteLine($"War Room is ready at {url}");
+            Console.WriteLine($"War Room running at {url}");
+            Console.WriteLine("(Keep this window open while using the app. Close it to stop.)");
             try
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
