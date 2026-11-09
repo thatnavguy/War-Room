@@ -43,10 +43,15 @@ function setSectionVisible(sectionId, visible) {
 }
 
 async function load() {
-  const id = new URLSearchParams(location.search).get('id');
+  const params = new URLSearchParams(location.search);
+  const fromDiscovery = params.get('room') === 'discovery';
+  const roomName = fromDiscovery ? 'Discovery Room' : 'Briefing Room';
+  $('#room-back-link').href = fromDiscovery ? '/?room=discovery' : '/';
+  $('#room-back-label').textContent = roomName;
+  const id = params.get('id');
   if (!id) {
     $('#item-title').textContent = 'No work item selected';
-    $('#history-status').textContent = 'Return to Briefing Room and select an item to see its details.';
+    $('#history-status').textContent = `Return to ${roomName} and select an item to see its details.`;
     $('#links-status').textContent = 'Select a work item to see its related links.';
     $('#attachments-status').textContent = 'Select a work item to see its attachments.';
     return;
@@ -55,7 +60,7 @@ async function load() {
   const res = await fetch(`/api/items/${id}`);
   if (!res.ok) {
     $('#item-title').textContent = 'Item not found';
-    $('#history-status').textContent = 'This work item is not in your local tracker. Return to Briefing Room and sync if you expect it to appear.';
+    $('#history-status').textContent = `This work item is not in your local tracker. Return to ${roomName} and sync if you expect it to appear.`;
     $('#links-status').textContent = 'Related links are unavailable because this work item is not in your local tracker.';
     $('#attachments-status').textContent = 'Attachments are unavailable because this work item is not in your local tracker.';
     return;
@@ -113,6 +118,10 @@ async function load() {
     touches.appendChild(li);
   }
   $('#touches-empty').hidden = touches.childElementCount > 0;
+  if (fromDiscovery && !(item.touches || []).length) {
+    $('#why-heading').textContent = 'Why it appears in Discovery Room';
+    $('#touches-empty').textContent = 'No assignment, creation, edit, comment, or mention involving you was recorded. Viewing this item does not add it to Briefing Room.';
+  }
 
   showRichText('#sec-description', '#description', item.description);
   showRichText('#sec-acceptance', '#acceptance', item.acceptance_criteria);

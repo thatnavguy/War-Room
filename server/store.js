@@ -261,9 +261,17 @@ function createStore(filename, legacyScope = '') {
   }
   
   function buildItemQuery(filters) {
+    if (filters.discovery) {
+      filters = { ...filters, closedOnly: false, hiddenOnly: false, focus: '', assignedToMe: false, touch: '' };
+    }
     const where = [filters.closedOnly ? 'w.is_closed = 1' : 'w.is_closed = 0'];
     if (!filters.closedOnly) where.push(filters.hiddenOnly ? `${HIDDEN_ITEM} AND NOT ${REQUIRED_ITEM}` : VISIBLE_ITEM);
     const params = {};
+    if (filters.discovery) {
+      where.push('NOT EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)');
+      where.push("julianday(w.changed_date) >= julianday('now', '-' || @discoveryDays || ' days')");
+      params.discoveryDays = config.discoveryDays;
+    }
 
     if (filters.focus === 'attention') filters.assignedToMe = true;
   
@@ -313,16 +321,17 @@ function createStore(filename, legacyScope = '') {
   
   function queryItems(filters) {
     const { where, params } = buildItemQuery(filters);
+    const join = filters.discovery ? '' : TOUCH_JOIN;
     const limit = Math.min(filters.limit || 200, 500);
     const offset = filters.offset || 0;
     const rows = db.prepare(`
-      SELECT DISTINCT w.*, ${HIDDEN_ITEM} AS is_hidden, ${REQUIRED_ITEM} AS visibility_required FROM work_items w ${TOUCH_JOIN}
+      SELECT DISTINCT w.*, ${HIDDEN_ITEM} AS is_hidden, ${REQUIRED_ITEM} AS visibility_required FROM work_items w ${join}
       WHERE ${where}
-      ORDER BY w.changed_date DESC
+      ORDER BY w.changed_date DESC, w.id DESC
       LIMIT ${limit} OFFSET ${offset}
     `).all(params);
     const total = db.prepare(`
-      SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN} WHERE ${where}
+      SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${join} WHERE ${where}
     `).get(params).n;
     return { items: rows, total };
   }
@@ -381,7 +390,25 @@ function createStore(filename, legacyScope = '') {
     };
   }
   
-  function getFilterValues() {
+  function getFilterValues(discovery = false) {
+    if (discovery) {
+      const { where, params } = buildItemQuery({ discovery: true });
+      const pick = (column) => db.prepare(`
+        SELECT DISTINCT w.${column} AS v FROM work_items w
+        WHERE ${where} AND w.${column} IS NOT NULL AND w.${column} != ''
+        ORDER BY w.${column}
+      `).all(params).map((row) => row.v);
+      return {
+        projects: pick('project'),
+        types: pick('type'),
+        states: pick('state'),
+        providers: pick('provider'),
+        priorities: pick('priority_level'),
+        labels: [...new Set(pick('tags').flatMap(splitLabels))].sort((a, b) => a.localeCompare(b)),
+        iterations: [],
+        touches: [],
+      };
+    }
     const pick = (col) =>
       db.prepare(`SELECT DISTINCT ${col} AS v FROM work_items WHERE ${col} IS NOT NULL AND ${col} != '' ORDER BY ${col}`)
         .all().map((r) => r.v);

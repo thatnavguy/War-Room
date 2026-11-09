@@ -40,6 +40,7 @@ const config = {
   port: 4073,
   staleDays: 14,
   lookbackDays: 365,
+  discoveryDays: 30,
   adoAutoSyncMinutes: 0,
   ghAutoSyncMinutes: 0,
 
@@ -72,6 +73,10 @@ const config = {
     this.port = intFromEnv('PORT', 4073);
     this.staleDays = intFromEnv('STALE_DAYS', 14);
     this.lookbackDays = intFromEnv('LOOKBACK_DAYS', 365);
+    this.discoveryDays = Number(process.env.DISCOVERY_DAYS || 30);
+    if (!Number.isInteger(this.discoveryDays) || this.discoveryDays < 1 || this.discoveryDays > 3650) {
+      throw new Error('DISCOVERY_DAYS must be a whole number from 1 to 3650 days.');
+    }
     for (const [property, name] of [['adoAutoSyncMinutes', 'ADO_AUTO_SYNC_MINUTES'], ['ghAutoSyncMinutes', 'GH_AUTO_SYNC_MINUTES']]) {
       const minutes = Number(process.env[name] || 0);
       if (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440) {
@@ -83,7 +88,7 @@ const config = {
 
   // Only keys present in the argument are written; other settings are preserved.
   // Blank tokens keep the existing one.
-  save({ orgUrl, pat, projects, port, staleDays, lookbackDays, ghToken, ghRepos, ghHost, adoAutoSyncMinutes, ghAutoSyncMinutes }) {
+  save({ orgUrl, pat, projects, port, staleDays, lookbackDays, discoveryDays, ghToken, ghRepos, ghHost, adoAutoSyncMinutes, ghAutoSyncMinutes }) {
     const oldPort = this.port;
     const values = {};
     if (orgUrl !== undefined) values.ADO_ORG_URL = (orgUrl || '').trim().replace(/\/+$/, '');
@@ -95,6 +100,12 @@ const config = {
     if (port !== undefined) values.PORT = String(port || 4073);
     if (staleDays !== undefined) values.STALE_DAYS = String(staleDays || 14);
     if (lookbackDays !== undefined) values.LOOKBACK_DAYS = String(lookbackDays || 365);
+    if (discoveryDays !== undefined) {
+      if (!Number.isInteger(discoveryDays) || discoveryDays < 1 || discoveryDays > 3650) {
+        throw new Error('DISCOVERY_DAYS must be a whole number from 1 to 3650 days.');
+      }
+      values.DISCOVERY_DAYS = String(discoveryDays);
+    }
     for (const [name, minutes] of [['ADO_AUTO_SYNC_MINUTES', adoAutoSyncMinutes], ['GH_AUTO_SYNC_MINUTES', ghAutoSyncMinutes]]) {
       if (minutes === undefined) continue;
       if (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440) {

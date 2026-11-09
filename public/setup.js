@@ -26,6 +26,7 @@ async function load() {
   $('#port').value = cfg.port;
   $('#stale-days').value = cfg.staleDays;
   $('#lookback-days').value = cfg.lookbackDays;
+  $('#discovery-days').value = cfg.discoveryDays;
 }
 
 function wireForm(formSel, statusSel, buildBody) {
@@ -83,6 +84,7 @@ wireForm('#general-form', '#general-save-status', () => ({
     port: parseInt($('#port').value, 10),
     staleDays: parseInt($('#stale-days').value, 10),
     lookbackDays: parseInt($('#lookback-days').value, 10),
+    discoveryDays: Number($('#discovery-days').value),
   },
 }));
 

@@ -9,9 +9,11 @@ const { test } = require('node:test');
 const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8')
   .replace('init().catch(showLoadError);', '');
 
-function dashboard(fetch) {
+function dashboard(fetch, search = '') {
   function element() {
+    const classes = new Set();
     return {
+      dataset: {},
       value: '',
       checked: false,
       hidden: false,
@@ -22,9 +24,10 @@ function dashboard(fetch) {
       attributes: {},
       listeners: {},
       classList: {
-        add() {},
-        remove() {},
-        toggle() {},
+        add(name) { classes.add(name); },
+        remove(name) { classes.delete(name); },
+        contains(name) { return classes.has(name); },
+        toggle(name, enabled) { enabled ? classes.add(name) : classes.delete(name); },
       },
       querySelector() { return this.children.find((child) => child.type === 'button'); },
       focus(options) { this.focusOptions = options; },
@@ -33,6 +36,7 @@ function dashboard(fetch) {
       appendChild(child) { this.children.push(child); },
       append(...children) { this.children.push(...children); },
       setAttribute(name, value) { this.attributes[name] = value; },
+      removeAttribute(name) { delete this.attributes[name]; },
     };
   }
   const elements = new Map();
@@ -56,6 +60,7 @@ function dashboard(fetch) {
       }
     },
     fetch,
+    location: { search },
     URLSearchParams,
     sessionStorage: {
       getItem: (key) => sessionValues.get(key) ?? null,
@@ -216,4 +221,77 @@ test('restoring a preset view from the session keeps it selected', () => {
   assert.equal(page.evaluate('currentSavedViewId'), 'preset:daily-digest');
   page.evaluate(`sessionStorage.setItem(FILTER_STORAGE_KEY, 'savedView=preset:unknown'); restoreFilters();`);
   assert.equal(page.evaluate('currentSavedViewId'), '');
+});
+
+test('Discovery Room uses local room-specific requests, navigation, and filter storage', async () => {
+  const requests = [];
+  const page = dashboard(async (url) => {
+    requests.push(url);
+    const responses = {
+      '/api/providers': { providers: [{ id: 'azure-devops', label: 'Azure DevOps', configured: true }] },
+      '/api/config': { configured: true, discoveryDays: 30 },
+      '/api/sync/status': { lastSync: null },
+      '/api/filters?room=discovery': { projects: ['Untouched project'], types: [], states: [], priorities: [], labels: [] },
+      '/api/items?room=discovery': { items: [], total: 0 },
+    };
+    assert.ok(Object.hasOwn(responses, url), `Unexpected request: ${url}`);
+    return { ok: true, json: async () => responses[url] };
+  }, '?room=discovery');
+  await page.evaluate('init()');
+  assert.equal(page.elements.get('#page-title').textContent, 'Discovery Room');
+  assert.match(page.elements.get('#page-intro').textContent, /last 30 days/);
+  assert.equal(page.elements.get('#nav-discovery').attributes['aria-current'], 'page');
+  for (const selector of ['#work-summary', '#focus-filter', '#visibility-filter', '#mine-filter', '#work-actions-heading']) {
+    assert.equal(page.elements.get(selector).hidden, true, selector);
+  }
+  assert.equal(page.elements.get('#saved-view-select').children.length, 1);
+  assert.equal(page.evaluate('FILTER_STORAGE_KEY'), 'mission-hall.discovery-filters');
+  assert.equal(page.evaluate('SAVED_VIEWS_KEY'), 'mission-hall.saved-discovery-views');
+  assert.equal(page.evaluate('itemHref(42)'), '/item.html?id=42&room=discovery');
+  assert.equal(requests.some((url) => url === '/api/summary' || url === '/api/sync'), false);
+  assert.match(page.elements.get('#results-body').children[0].children[0].textContent, /already stored/);
+  page.evaluate(`applyFilterValues({ mine: true, focus: 'digest', hidden: 'closed' });`);
+  assert.equal(page.elements.get('#f-mine').checked, false);
+});
+
+test('Discovery Room renders item links without hide actions and loads further results', async () => {
+  const requests = [];
+  const item = (id) => ({
+    id, external_id: String(id), title: `Task ${id}`, provider_label: 'Azure DevOps',
+    type: 'Task', state: 'Active', is_closed: false,
+  });
+  const page = dashboard(async (url) => {
+    requests.push(url);
+    return {
+      ok: true,
+      json: async () => ({ items: [item(url.includes('offset=') ? 2 : 1)], total: 2 }),
+    };
+  }, '?room=discovery');
+  await page.evaluate('loadItems()');
+  assert.equal(page.elements.get('#load-more').hidden, false);
+  let rows = page.elements.get('#results-body').children;
+  assert.equal(rows[0].children.length, 9);
+  assert.equal(rows[0].children[0].children[0].href, '/item.html?id=1&room=discovery');
+  await page.elements.get('#load-more').listeners.click();
+  assert.equal(requests.at(-1), '/api/items?room=discovery&offset=1');
+  rows = page.elements.get('#results-body').children;
+  assert.equal(rows.length, 2);
+  assert.equal(page.elements.get('#load-more').hidden, true);
+  assert.equal(page.elements.get('#result-count').textContent, '2 of 2 items');
+  await page.evaluate('loadItems()');
+  assert.equal(requests.at(-1), '/api/items?room=discovery');
+  assert.equal(page.elements.get('#results-body').children.length, 1);
+});
+
+test('a late discovery response cannot overwrite a newer set of filters', async () => {
+  const pending = [];
+  const page = dashboard(() => new Promise((resolve) => pending.push(resolve)), '?room=discovery');
+  const first = page.evaluate('loadItems()');
+  page.evaluate(`$('#search').value = 'new query'`);
+  const second = page.evaluate('loadItems()');
+  pending[1]({ ok: true, json: async () => ({ items: [], total: 0 }) });
+  await second;
+  pending[0]({ ok: true, json: async () => ({ items: [], total: 100 }) });
+  await first;
+  assert.equal(page.elements.get('#result-count').textContent, '0 of 0 items');
 });

@@ -180,6 +180,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .button svg { width: 17px; height: 17px; }
 .button-primary { border-color: var(--rail); background: var(--rail); color: var(--surface); }
 .button-primary:hover { border-color: var(--rail-hover); background: var(--rail-hover); }
+#sync-btn { flex: none; white-space: nowrap; }
 
 .page-content { width: min(100%, 1480px); margin: 0 auto; padding: 30px 34px 20px; }
 
@@ -438,6 +439,8 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 .item-main .muted { font-size: 15px; }
 #source-link { margin-left: auto; color: var(--accent); }
 .filter-field[hidden] { display: none; }
+.work-summary[hidden], .check-filter[hidden], .load-more[hidden], #work-actions-heading[hidden] { display: none; }
+.load-more { margin-top: 16px; }
 
 .setup-intro { max-width: 68ch; margin: 0 0 22px; color: var(--muted); font-size: 14px; }
 .setup-card { max-width: 780px; padding: 22px; border: 1px solid var(--line); background: var(--surface); }
@@ -471,7 +474,7 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 }
 
 @media (max-width: 960px) {
-  .side-rail { position: static; width: auto; min-height: 0; flex-direction: row; align-items: center; gap: 16px; padding: 10px 15px; }
+  .side-rail { position: static; width: auto; min-height: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 15px; }
   .brand { margin: 0 auto 0 0; font-size: 14px; }
   .brand-mark, .brand-mark svg { width: 25px; height: 25px; }
   .primary-nav { display: flex; gap: 4px; }

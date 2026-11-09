@@ -62,8 +62,23 @@ Restart the dashboard after editing the file manually.
 | `PORT` | 4073 | Local server port |
 | `STALE_DAYS` | 14 | Days without update before an open item assigned to you "needs attention" |
 | `LOOKBACK_DAYS` | 365 | How far back the first sync deep-scans for your edits/comments |
+| `DISCOVERY_DAYS` | 30 | Show open items updated within this many days in Discovery Room (1–3650) |
 
 ## Usage
+
+- Open **Discovery Room** to browse recent, open items already stored on this computer
+  with no recorded assignment, creation, edit, comment, or mention involving you.
+  It does not fetch extra items from either source.
+  It starts with items updated within the last 30 days.
+  Change **Settings → General → Discovery window (days)**, save, then reload Discovery Room to apply the new window.
+  Older items stay stored but do not appear in Discovery Room.
+  Search and filter by source, project, priority, label, type, or state.
+  Use **Load more items** to see results beyond the first 200.
+  Discovery Room keeps its filters and saved views separate from Briefing Room.
+  Opening an item or writing private notes does not record source involvement or add it to Briefing Room.
+  When a later sync records your involvement, the item leaves Discovery Room and appears in Briefing Room.
+  Discovery is most useful for Azure DevOps, which also stores recently changed items beyond your own work.
+  GitHub sync searches for items involving you, so its Discovery Room results may be empty.
 
 - Click **Sync** to incrementally fetch new/changed items. The first sync is the
   heaviest; later syncs only fetch what changed since the watermark.

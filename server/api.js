@@ -33,6 +33,7 @@ router.get('/config', (req, res) => {
     port: config.port,
     staleDays: config.staleDays,
     lookbackDays: config.lookbackDays,
+    discoveryDays: config.discoveryDays,
   });
 });
 
@@ -70,9 +71,14 @@ router.post('/config', (req, res) => {
       values.ghAutoSyncMinutes = section.autoSyncMinutes;
     }
     if (body.general) {
+      const days = body.general.discoveryDays;
+      if (days !== undefined && (!Number.isInteger(days) || days < 1 || days > 3650)) {
+        return res.status(400).json({ error: 'Discovery window must be a whole number from 1 to 3650 days.' });
+      }
       values.port = body.general.port;
       values.staleDays = body.general.staleDays;
       values.lookbackDays = body.general.lookbackDays;
+      values.discoveryDays = days;
     }
     if (Object.keys(values).length === 0) {
       return res.status(400).json({ error: 'Nothing to save. Send an azureDevOps, github, or general section.' });
@@ -114,6 +120,7 @@ router.get('/summary', (req, res) => {
 
 router.get('/items', (req, res) => {
   const filters = {
+    discovery: req.query.room === 'discovery',
     search: req.query.search || '',
     project: req.query.project || '',
     provider: req.query.provider || '',
@@ -254,7 +261,7 @@ router.get('/attachments/image', async (req, res) => {
 });
 
 router.get('/filters', (req, res) => {
-  res.json(db.getFilterValues());
+  res.json(db.getFilterValues(req.query.room === 'discovery'));
 });
 
 module.exports = router;

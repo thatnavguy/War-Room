@@ -19,7 +19,7 @@ function element() {
   };
 }
 
-function page() {
+function page(search = '') {
   const nodes = new Map();
   const get = (selector) => {
     if (!nodes.has(selector)) nodes.set(selector, element());
@@ -27,7 +27,7 @@ function page() {
   };
   const context = vm.createContext({
     document: { querySelector: get, createElement: element },
-    location: { search: '' },
+    location: { search },
     window: { addEventListener() {} },
     URLSearchParams,
     fetch: async () => ({ json: async () => ({}) }),
@@ -35,6 +35,13 @@ function page() {
   vm.runInContext(source, context);
   return { context, get };
 }
+
+test('items opened from discovery return to Discovery Room', () => {
+  const { get } = page('?room=discovery');
+  assert.equal(get('#room-back-link').href, '/?room=discovery');
+  assert.equal(get('#room-back-label').textContent, 'Discovery Room');
+  assert.match(get('#history-status').textContent, /Discovery Room/);
+});
 
 for (const section of [
   { id: 'sec-attachments', loader: 'loadAttachments', key: 'attachments', status: '#attachments-status', entry: { name: 'file.txt', url: 'https://example.com/file.txt' } },

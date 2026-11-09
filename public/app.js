@@ -1,6 +1,8 @@
 'use strict';
 
 const $ = (sel) => document.querySelector(sel);
+const isDiscovery = new URLSearchParams(location.search).get('room') === 'discovery';
+const tableColumns = isDiscovery ? 9 : 10;
 
 const searchInput = $('#search');
 const filterEls = {
@@ -14,11 +16,15 @@ const filterEls = {
   state: $('#f-state'),
 };
 const mineCheckbox = $('#f-mine');
-const FILTER_STORAGE_KEY = 'mission-hall.work-filters';
-const SAVED_VIEWS_KEY = 'mission-hall.saved-work-views';
+if (isDiscovery) {
+  delete filterEls.focus;
+  delete filterEls.hidden;
+}
+const FILTER_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-filters' : 'mission-hall.work-filters';
+const SAVED_VIEWS_KEY = isDiscovery ? 'mission-hall.saved-discovery-views' : 'mission-hall.saved-work-views';
 const savedViewSelect = $('#saved-view-select');
 const savedViewStatus = $('#saved-view-status');
-const PRESET_VIEWS = [
+const PRESET_VIEWS = isDiscovery ? [] : [
   { id: 'preset:daily-digest', name: 'Daily digest', filters: { focus: 'digest' } },
   { id: 'preset:needs-attention', name: 'Needs attention', filters: { focus: 'attention' } },
 ];
@@ -32,14 +38,14 @@ function allViews() {
 function currentFilterValues() {
   const filters = { search: searchInput.value };
   for (const [key, el] of Object.entries(filterEls)) filters[key] = el.value;
-  filters.mine = mineCheckbox.checked;
+  filters.mine = !isDiscovery && mineCheckbox.checked;
   return filters;
 }
 
 function applyFilterValues(filters) {
   searchInput.value = filters.search || '';
   for (const [key, el] of Object.entries(filterEls)) el.value = filters[key] || '';
-  mineCheckbox.checked = Boolean(filters.mine);
+  mineCheckbox.checked = !isDiscovery && Boolean(filters.mine);
 }
 
 function saveFilters() {
@@ -48,7 +54,7 @@ function saveFilters() {
   for (const [key, el] of Object.entries(filterEls)) {
     if (el.value) params.set(key, el.value);
   }
-  if (mineCheckbox.checked) params.set('mine', '1');
+  if (!isDiscovery && mineCheckbox.checked) params.set('mine', '1');
   if (currentSavedViewId) params.set('savedView', currentSavedViewId);
   sessionStorage.setItem(FILTER_STORAGE_KEY, params.toString());
 }
@@ -66,10 +72,12 @@ function restoreFilters() {
 
 function renderSavedViews() {
   savedViewSelect.replaceChildren(new Option('Choose a view', ''));
-  const presetGroup = document.createElement('optgroup');
-  presetGroup.label = 'Preset views';
-  for (const view of PRESET_VIEWS) presetGroup.appendChild(new Option(view.name, view.id));
-  savedViewSelect.appendChild(presetGroup);
+  if (PRESET_VIEWS.length) {
+    const presetGroup = document.createElement('optgroup');
+    presetGroup.label = 'Preset views';
+    for (const view of PRESET_VIEWS) presetGroup.appendChild(new Option(view.name, view.id));
+    savedViewSelect.appendChild(presetGroup);
+  }
   if (savedViews.length) {
     const savedGroup = document.createElement('optgroup');
     savedGroup.label = 'Your saved views';
@@ -118,6 +126,7 @@ let staleCutoff = null;
 let providers = [];
 let staleDays = 14;
 let currentItems = [];
+let itemsRequest = 0;
 
 function fmtDate(iso) {
   if (!iso) return '–';
@@ -137,19 +146,19 @@ function dueDateStatus(iso, today = new Date()) {
 }
 
 async function loadSummary() {
-  const res = await fetch('/api/summary');
+  const res = await fetch(isDiscovery ? '/api/sync/status' : '/api/summary');
   const s = await res.json();
   if (!res.ok) throw new Error(s.error || 'Could not load the work summary.');
+  $('#last-sync').textContent = s.lastSync
+    ? `Last synced ${new Date(s.lastSync).toLocaleString()}`
+    : 'Never synced';
+  $('#rail-connection').textContent = `${providers.filter((provider) => provider.configured).map((provider) => provider.label).join(', ') || 'No connected sources'} · local tracking`;
+  if (isDiscovery) return;
   $('#card-open').textContent = s.open;
   $('#card-recent').textContent = s.recentlyUpdated;
   $('#card-stale').textContent = s.stale;
   $('#card-stale-button').classList.toggle('has-attention', s.stale > 0);
   $('#card-stale-label').textContent = `assigned to you, unchanged for ${s.staleDays}+ days`;
-  $('#last-sync').textContent = s.lastSync
-    ? `Last synced ${new Date(s.lastSync).toLocaleString()}`
-    : 'Never synced';
-  $('#rail-connection').textContent = `${providers.filter((provider) => provider.configured).map((provider) => provider.label).join(', ')} · local tracking`;
-
   staleCutoff = new Date(Date.now() - s.staleDays * 86400000);
   staleDays = s.staleDays;
 
@@ -174,7 +183,7 @@ function renderGroup(sel, rows) {
 }
 
 async function loadFilters() {
-  const res = await fetch('/api/filters');
+  const res = await fetch(isDiscovery ? '/api/filters?room=discovery' : '/api/filters');
   const f = await res.json();
   if (!res.ok) throw new Error(f.error || 'Could not load work filters.');
   fill(filterEls.project, f.projects, 'All projects');
@@ -201,34 +210,47 @@ function fill(select, values, placeholder) {
   }
 }
 
-async function loadItems() {
+function itemHref(id) {
+  return `/item.html?id=${id}${isDiscovery ? '&room=discovery' : ''}`;
+}
+
+async function loadItems(append = false) {
+  const request = ++itemsRequest;
   saveFilters();
   const params = new URLSearchParams();
+  if (isDiscovery) params.set('room', 'discovery');
   if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
   for (const [key, el] of Object.entries(filterEls)) {
     if (el.value) params.set(key, el.value);
   }
-  if (mineCheckbox.checked) params.set('mine', '1');
+  if (!isDiscovery && mineCheckbox.checked) params.set('mine', '1');
+  if (isDiscovery && append) params.set('offset', currentItems.length);
   const res = await fetch('/api/items?' + params);
   const data = await res.json();
+  if (request !== itemsRequest) return;
   if (!res.ok) throw new Error(data.error || 'Could not load work items.');
-  currentItems = data.items;
-  $('#result-count').textContent = `${data.total.toLocaleString()} ${data.total === 1 ? 'item' : 'items'}`;
+  currentItems = append ? [...currentItems, ...data.items] : data.items;
+  $('#result-count').textContent = isDiscovery
+    ? `${currentItems.length.toLocaleString()} of ${data.total.toLocaleString()} ${data.total === 1 ? 'item' : 'items'}`
+    : `${data.total.toLocaleString()} ${data.total === 1 ? 'item' : 'items'}`;
+  $('#load-more').hidden = !isDiscovery || currentItems.length >= data.total;
 
   const tbody = $('#results-body');
   tbody.replaceChildren();
-  if (data.items.length === 0) {
+  if (currentItems.length === 0) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.className = 'table-message';
-    cell.colSpan = 10;
-    cell.textContent = data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
+    cell.colSpan = tableColumns;
+    cell.textContent = isDiscovery
+      ? 'No recent, open items without your involvement match these filters. Clear filters or change the discovery window in Settings. Discovery uses only items already stored on this computer.'
+      : data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
     row.appendChild(cell);
     tbody.appendChild(row);
     return;
   }
 
-  for (const item of data.items) {
+  for (const item of currentItems) {
     const tr = document.createElement('tr');
     tr.className = 'work-row';
     tr.dataset.id = item.id;
@@ -257,7 +279,7 @@ async function loadItems() {
       if (cell.kind === 'id') {
         td.className = 'id-cell';
         const a = document.createElement('a');
-        a.href = `/item.html?id=${item.id}`;
+        a.href = itemHref(item.id);
         a.textContent = item.external_id;
         a.title = `${item.provider_label} · ${item.source_scope}`;
         td.appendChild(a);
@@ -287,7 +309,7 @@ async function loadItems() {
       } else if (cell.kind === 'title') {
         td.className = 'title-cell';
         const a = document.createElement('a');
-        a.href = `/item.html?id=${item.id}`;
+        a.href = itemHref(item.id);
         a.textContent = cell.value || 'Untitled work item';
         td.appendChild(a);
         const labels = String(item.tags || '').split(';').map((tag) => tag.trim()).filter(Boolean);
@@ -368,13 +390,13 @@ async function loadItems() {
       changeVisibility(item, !restoring, visibilityButton);
     });
     if (!item.is_closed) actions.appendChild(visibilityButton);
-    tr.appendChild(actions);
+    if (!isDiscovery) tr.appendChild(actions);
 
     tr.addEventListener('click', (e) => {
-      if (!e.target.closest('a, button')) location.href = `/item.html?id=${item.id}`;
+      if (!e.target.closest('a, button')) location.href = itemHref(item.id);
     });
     tr.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') location.href = `/item.html?id=${item.id}`;
+      if (e.key === 'Enter') location.href = itemHref(item.id);
     });
     tbody.appendChild(tr);
   }
@@ -425,7 +447,7 @@ function debounce(fn, ms) {
   };
 }
 
-const debouncedLoad = debounce(loadItems, 200);
+const debouncedLoad = debounce(() => loadItems().catch(showLoadError), 200);
 searchInput.addEventListener('input', () => {
   currentSavedViewId = '';
   renderSavedViews();
@@ -433,8 +455,10 @@ searchInput.addEventListener('input', () => {
   debouncedLoad();
 });
 function onFilterChange(event) {
-  if (event?.target === filterEls.hidden && filterEls.hidden.value === 'closed') filterEls.focus.value = '';
-  if (event?.target === filterEls.focus && filterEls.focus.value && filterEls.hidden.value === 'closed') filterEls.hidden.value = '';
+  if (!isDiscovery) {
+    if (event?.target === filterEls.hidden && filterEls.hidden.value === 'closed') filterEls.focus.value = '';
+    if (event?.target === filterEls.focus && filterEls.focus.value && filterEls.hidden.value === 'closed') filterEls.hidden.value = '';
+  }
   currentSavedViewId = '';
   renderSavedViews();
   loadItems().catch(showLoadError);
@@ -548,11 +572,26 @@ function showLoadError(err) {
   const row = document.createElement('tr');
   const cell = document.createElement('td');
   cell.className = 'table-message table-error';
-  cell.colSpan = 10;
+  cell.colSpan = tableColumns;
   cell.textContent = message;
   row.appendChild(cell);
   tableBody.appendChild(row);
+  $('#load-more').hidden = true;
 }
+
+$('#load-more').addEventListener('click', async () => {
+  const button = $('#load-more');
+  button.disabled = true;
+  button.textContent = 'Loading…';
+  try {
+    await loadItems(true);
+  } catch (error) {
+    showLoadError(error);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Load more items';
+  }
+});
 
 $('#sync-btn').addEventListener('click', async () => {
   const btn = $('#sync-btn');
@@ -577,6 +616,19 @@ $('#sync-btn').addEventListener('click', async () => {
 });
 
 async function init() {
+  if (isDiscovery) {
+    document.title = 'Discovery Room — War Room';
+    $('#page-title').textContent = 'Discovery Room';
+    $('#room-breadcrumb').textContent = 'Discovery Room';
+    $('#work-title').textContent = 'Work you haven’t been involved in';
+    $('#nav-briefing').classList.remove('is-active');
+    $('#nav-briefing').removeAttribute('aria-current');
+    $('#nav-discovery').classList.add('is-active');
+    $('#nav-discovery').setAttribute('aria-current', 'page');
+    for (const selector of ['#work-summary', '#focus-filter', '#visibility-filter', '#mine-filter', '#work-actions-heading']) {
+      $(selector).hidden = true;
+    }
+  }
   loadSavedViews();
   renderSavedViews();
   const providerRes = await fetch('/api/providers');
@@ -586,10 +638,19 @@ async function init() {
   const configRes = await fetch('/api/config');
   const cfg = await configRes.json();
   if (!configRes.ok) throw new Error(cfg.error || 'Could not check your work connections.');
+  if (isDiscovery) {
+    $('#page-intro').textContent = `Open items updated in the last ${cfg.discoveryDays} days, with no recorded assignment, creation, edit, comment, or mention involving you.`;
+  }
   if (!cfg.configured) {
     $('#unconfigured').hidden = false;
     $('#sync-btn').disabled = true;
     $('#rail-connection').textContent = 'Not connected';
+    if (isDiscovery) {
+      await loadSummary();
+      await loadFilters();
+      await loadItems();
+      return;
+    }
     const tbody = $('#results-body');
     tbody.replaceChildren();
     const row = document.createElement('tr');

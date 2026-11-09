@@ -21,6 +21,11 @@ test('project settings override inherited values while unspecified settings keep
     assert.equal(config.ghHost, 'github.com');
     assert.equal(config.port, 4073);
     assert.equal(config.lookbackDays, 90);
+    assert.equal(config.discoveryDays, 30);
+    config.save({ discoveryDays: 90 });
+    assert.equal(config.discoveryDays, 90);
+    config.load();
+    assert.equal(config.discoveryDays, 90);
     assert.equal(config.adoAutoSyncMinutes, 0);
     assert.equal(config.ghAutoSyncMinutes, 0);
     assert.equal(process.env.GH_TOKEN, 'saved-token');
@@ -37,6 +42,11 @@ test('project settings override inherited values while unspecified settings keep
     assert.match(fs.readFileSync(filename, 'utf8'), /ADO_AUTO_SYNC_MINUTES=0/);
     assert.match(fs.readFileSync(filename, 'utf8'), /GH_AUTO_SYNC_MINUTES=15/);
     const saved = fs.readFileSync(filename, 'utf8');
+    assert.match(saved, /DISCOVERY_DAYS=90/);
+    for (const days of [0, -1, 0.5, 3651, '30', null, NaN]) {
+      assert.throws(() => config.save({ discoveryDays: days }), /whole number/);
+      assert.equal(fs.readFileSync(filename, 'utf8'), saved);
+    }
     for (const minutes of [-1, 0.5, 1441, '5', null, NaN]) {
       assert.throws(() => config.save({ ghAutoSyncMinutes: minutes }), /whole number/);
       assert.equal(fs.readFileSync(filename, 'utf8'), saved);
@@ -52,6 +62,7 @@ test('project settings override inherited values while unspecified settings keep
       GH_HOST: 'inherited.example.com',
       PORT: '9999',
       LOOKBACK_DAYS: '90',
+      DISCOVERY_DAYS: '',
       ADO_AUTO_SYNC_MINUTES: '0',
       GH_AUTO_SYNC_MINUTES: '0',
     },
