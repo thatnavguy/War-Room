@@ -12,7 +12,7 @@ The primary user is the project owner, managing their own DevOps work.
 
 ## Product Purpose
 
-Mission Hall helps its user keep track of work items they have touched and manage their DevOps work from one personal workspace. The current integration is Azure DevOps. Expanding to GitHub is a future goal.
+War Room helps its user keep track of work items they have touched and manage their DevOps work from one personal workspace. The current integration is Azure DevOps. Expanding to GitHub is a future goal.
 
 ## Positioning
 
@@ -39,7 +39,7 @@ The dashboard should surface work that needs attention before the wider workload
 
 ## Brand Commitments
 
-The product name is Mission Hall.
+The product name is War Room.
 
 Azure DevOps is currently the only implemented work source. The app separates provider adapters,
 local item IDs, source IDs, and per-source sync state to prepare for GitHub without enabling it yet.

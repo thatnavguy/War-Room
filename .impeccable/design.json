@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-11-06T08:30:00+13:00",
-  "title": "Design System: Mission Hall",
+  "title": "Design System: War Room",
   "extensions": {
     "colorMeta": {
       "rail": {
@@ -112,7 +112,7 @@
       "kind": "nav",
       "refersTo": "nav-link-active",
       "description": "Current section in the desktop navy rail.",
-      "html": "<a class=\"ds-nav-link\" href=\"#\"><svg viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 5.5h6v5H4zm10 0h6v8h-6zM4 14.5h6V19H4zm10 2h6V19h-6z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></svg><span>My work</span></a>",
+      "html": "<a class=\"ds-nav-link\" href=\"#\"><svg viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 5.5h6v5H4zm10 0h6v8h-6zM4 14.5h6V19H4zm10 2h6V19h-6z\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></svg><span>Briefing Room</span></a>",
       "css": ".ds-nav-link { display: flex; min-height: 42px; align-items: center; gap: 12px; padding: 0 12px; border-radius: 4px; background: var(--rail-hover); color: var(--rail-ink); font: 600 14px \"Segoe UI\", Arial, sans-serif; text-decoration: none; } .ds-nav-link svg { width: 19px; height: 19px; } .ds-nav-link:hover { background: var(--rail-hover); color: var(--surface); } .ds-nav-link:focus-visible { outline: 3px solid var(--signal-amber); outline-offset: 2px; }"
     },
     {
@@ -133,7 +133,7 @@
   ],
   "narrative": {
     "northStar": "Departure Board",
-    "overview": "Mission Hall helps its owner scan personally relevant Azure DevOps work and spot items that have gone unchanged. The screen keeps familiar navigation, search, filters, and a complete work-item table; the visual direction borrows a departure board's disciplined columns, tabular figures, and clear signal colors without turning the interface into a flight simulator.\n\nThe signature move is the dark attention board: age, work item, project, state, and last-changed date line up in a stable row. Amber makes elapsed time easy to find, while a restrained red signal marks stale work. These are real elapsed days and changed dates, never due dates or schedules that the data does not contain.",
+    "overview": "War Room helps its owner scan personally relevant Azure DevOps work and spot items that have gone unchanged. The screen keeps familiar navigation, search, filters, and a complete work-item table; the visual direction borrows a departure board's disciplined columns, tabular figures, and clear signal colors without turning the interface into a flight simulator.\n\nThe signature move is the dark attention board: age, work item, project, state, and last-changed date line up in a stable row. Amber makes elapsed time easy to find, while a restrained red signal marks stale work. These are real elapsed days and changed dates, never due dates or schedules that the data does not contain.",
     "keyCharacteristics": [
       "Deep navy navigation and attention board, framed by a cool, light workspace.",
       "Crisp aligned columns and tabular figures for quick comparison.",

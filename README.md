@@ -1,4 +1,4 @@
-# Mission Hall
+# War Room
 
 A lightweight, local-only web app that tracks Azure DevOps work items and GitHub
 issues/pull requests you have touched: currently assigned, previously assigned,
@@ -10,8 +10,9 @@ On Windows, double-click `start-dashboard.bat` to start the dashboard and open i
 in your browser. The first run installs the required packages.
 If startup fails, check `data\dashboard-error.log` and `data\dashboard-output.log` for details.
 
-For a desktop shortcut, double-click `add-desktop-shortcut.bat` once.
-Then use **Mission Hall** on your desktop to start the dashboard.
+To create or update the desktop shortcut, double-click `add-desktop-shortcut.bat`.
+Run it again to refresh the shortcut name and icon.
+Then use **War Room** on your desktop to start the dashboard.
 The installer uses your Windows desktop folder, including desktops managed by OneDrive.
 Keep this project folder in place. If you move it, remove the old shortcut and run the installer again.
 
@@ -77,8 +78,8 @@ Restart the dashboard after editing the file manually.
 - Open an item to see exactly why it's tracked (assigned / created / edited /
   commented / mentioned) and jump to it in Azure DevOps.
 - Use the external-link icon beside a work-item ID to open Azure DevOps in a new tab.
-  The ID and title still open Mission Hall details. Your list filters stay unchanged.
-- Choose the eye-off **Hide** icon at the right edge of a row to remove an unrelated item from My work.
+  The ID and title still open War Room details. Your list filters stay unchanged.
+- Choose the eye-off **Hide** icon at the right edge of a row to remove an unrelated item from Briefing Room.
   The confirmation includes **Undo** to bring it straight back.
   Hide preferences are saved in the local database. Azure DevOps is not changed.
   Use **Visibility: Hidden items** and **Restore** to bring an item back.
@@ -86,7 +87,7 @@ Restart the dashboard after editing the file manually.
   These conditions override an earlier hide preference after syncing.
   If neither condition applies later, the hide preference takes effect again.
   Restart the dashboard and sync once after upgrading to check the latest comments on tracked items.
-- Actual **@mentions of your identity** bring open items into My work after syncing.
+- Actual **@mentions of your identity** bring open items into Briefing Room after syncing.
   Plain text containing your name does not count as a mention.
   The first sync after this update scans comments on items changed within the configured lookback period.
   If a scan fails, the sync checkpoint stays unchanged so the next sync retries.
@@ -100,12 +101,12 @@ Restart the dashboard after editing the file manually.
 - Select **Comments only** beside **Comments & history** to hide field changes
   and revisions without comments. Clear it to see the full history again.
 - Use the section menu at the top of a work item to jump to **Description** or **Comments & history**.
-  The menu and **My work** back link stay visible as you scroll. The menu only shows sections that are available.
+  The menu and **Briefing Room** back link stay visible as you scroll. The menu only shows sections that are available.
 - **Related links** shows existing linked work items, commits, pull requests, and web links, grouped by type.
   Links load live from Azure DevOps; no sync is needed. Attachments remain in their separate section.
   Azure DevOps Git links open directly. GitHub artifact links use an internal repository ID,
   so they explicitly open the source work item in Azure DevOps instead of guessing a GitHub URL.
-  Add or edit links in Azure DevOps; Mission Hall remains read-only.
+  Add or edit links in Azure DevOps; War Room remains read-only.
 - Choose **Visibility: Closed items** to find tracked closed or removed items, including hidden ones.
   Search and the other filters still apply. The open-work summary and focus views do not include closed items.
 
@@ -115,7 +116,7 @@ except read-only calls to your connected Azure DevOps org and GitHub host.
 ## Work sources
 
 Azure DevOps and GitHub are both supported and can be connected at the same time.
-The **My work** feed stays unified: a **Source** filter appears once multiple sources
+The **Briefing Room** feed stays unified: a **Source** filter appears once multiple sources
 are connected, each row links out to its own source, and **Sync now** syncs every
 connected source in one pass.
 

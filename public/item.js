@@ -46,7 +46,7 @@ async function load() {
   const id = new URLSearchParams(location.search).get('id');
   if (!id) {
     $('#item-title').textContent = 'No work item selected';
-    $('#history-status').textContent = 'Return to My work and select an item to see its details.';
+    $('#history-status').textContent = 'Return to Briefing Room and select an item to see its details.';
     $('#links-status').textContent = 'Select a work item to see its related links.';
     $('#attachments-status').textContent = 'Select a work item to see its attachments.';
     return;
@@ -55,7 +55,7 @@ async function load() {
   const res = await fetch(`/api/items/${id}`);
   if (!res.ok) {
     $('#item-title').textContent = 'Item not found';
-    $('#history-status').textContent = 'This work item is not in your local tracker. Return to My work and sync if you expect it to appear.';
+    $('#history-status').textContent = 'This work item is not in your local tracker. Return to Briefing Room and sync if you expect it to appear.';
     $('#links-status').textContent = 'Related links are unavailable because this work item is not in your local tracker.';
     $('#attachments-status').textContent = 'Attachments are unavailable because this work item is not in your local tracker.';
     return;
@@ -63,7 +63,7 @@ async function load() {
   const item = await res.json();
   providerLabel = item.provider_label || providerLabel;
 
-  document.title = `${item.external_id} — Mission Hall`;
+  document.title = `${item.external_id} — War Room`;
   $('#item-title').textContent = `${item.type} ${item.external_id}: ${item.title}`;
   $('#item-provider').textContent = item.provider_label;
   $('#item-source-caption').textContent = `${item.provider_label} work item`;

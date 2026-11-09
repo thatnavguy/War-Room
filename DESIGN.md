@@ -1,5 +1,5 @@
 ---
-name: Mission Hall
+name: War Room
 description: A precise local board for Azure DevOps work.
 colors:
   page: "#f4f6f7"
@@ -144,13 +144,13 @@ components:
     padding: "3px 7px"
 ---
 
-# Design System: Mission Hall
+# Design System: War Room
 
 ## Overview
 
 **Creative North Star: "Departure Board"**
 
-Mission Hall helps its owner scan personally relevant Azure DevOps work and spot items that have gone unchanged. The screen keeps familiar navigation, search, filters, and a complete work-item table; the visual direction borrows a departure board's disciplined columns, tabular figures, and clear signal colors without turning the interface into a flight simulator.
+War Room helps its owner scan personally relevant Azure DevOps work and spot items that have gone unchanged. The screen keeps familiar navigation, search, filters, and a complete work-item table; the visual direction borrows a departure board's disciplined columns, tabular figures, and clear signal colors without turning the interface into a flight simulator.
 
 The signature move is the focused work list: preset views cut the full table down to what needs action today, and stale rows carry a restrained red signal. Amber marks work due today and the user's own name, while red marks stale or overdue work. These are real elapsed days and recorded dates, never invented schedules.
 
@@ -236,7 +236,7 @@ Compare calendar days in the user's local time zone. Iteration and From/To filte
 Work rows have an eye-off Hide icon at their right edge, or a text Restore action when a hide preference exists.
 Keep unavailable Hide actions keyboard-focusable with aria-disabled and an explanatory tooltip.
 After hiding, show a compact inline confirmation with Undo and move focus to it.
-The Visibility filter switches between My work and Hidden items. Local visibility changes show an inline status or error.
+The Visibility filter switches between Briefing Room and Hidden items. Local visibility changes show an inline status or error.
 
 Related links uses the shared navy section heading and a sticky-menu shortcut. Group links by their actual relation type,
 with link text, supplied update dates, and comments. Unresolved artifact links clearly point back to Azure DevOps.

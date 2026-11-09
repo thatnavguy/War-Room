@@ -38,7 +38,7 @@ if (-not (Test-Path (Join-Path $PSScriptRoot 'node_modules'))) {
 }
 
 if (-not (Test-Dashboard)) {
-    Write-Host "Starting Mission Hall on port $port..."
+    Write-Host "Starting War Room on port $port..."
     $logDirectory = Join-Path $PSScriptRoot 'data'
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $outputLog = Join-Path $logDirectory 'dashboard-output.log'
@@ -71,4 +71,4 @@ if (-not (Test-Dashboard)) {
 }
 
 Start-Process $dashboardUrl
-Write-Host "Mission Hall is open at $dashboardUrl"
+Write-Host "War Room is open at $dashboardUrl"

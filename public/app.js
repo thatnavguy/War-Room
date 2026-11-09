@@ -341,7 +341,7 @@ async function loadItems() {
     const protectedItem = !restoring && Boolean(item.visibility_required);
     const explanation = protectedItem
       ? 'Keep visible: assigned to you or the latest comment @mentions you.'
-      : restoring ? 'Restore to My work' : 'Hide from My work';
+      : restoring ? 'Restore to Briefing Room' : 'Hide from Briefing Room';
     visibilityButton.title = explanation;
     visibilityButton.setAttribute('aria-label', `${restoring ? 'Restore' : 'Hide'} work item ${item.external_id}${protectedItem ? `. ${explanation}` : ''}`);
     visibilityButton.setAttribute('aria-disabled', String(protectedItem));
