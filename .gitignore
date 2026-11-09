@@ -6,7 +6,4 @@ release/obj/
 release/publish/
 release/package/
 .playwright-mcp/
-.impeccable/hook.cache.json
-.impeccable/questions/
-.impeccable/review/
-.impeccable/mocks/
+.impeccable/
