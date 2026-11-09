@@ -4,6 +4,8 @@ A lightweight, local-only web app that tracks Azure DevOps work items and GitHub
 issues/pull requests you have touched: currently assigned, previously assigned,
 created, edited, commented, or mentioned in a comment. Connect one or both sources.
 
+![War Room developer command center](public/war-room-readme.png)
+
 ## Setup
 
 ### Download for Windows
