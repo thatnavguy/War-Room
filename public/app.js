@@ -146,15 +146,12 @@ const FILTER_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-filters' : 'mis
 const SAVED_VIEWS_KEY = isDiscovery ? 'mission-hall.saved-discovery-views' : 'mission-hall.saved-work-views';
 const savedViewSelect = $('#saved-view-select');
 const savedViewStatus = $('#saved-view-status');
-const PRESET_VIEWS = isDiscovery ? [] : [
-  { id: 'preset:daily-digest', name: 'Daily digest', filters: { focus: 'digest' } },
-  { id: 'preset:needs-attention', name: 'Needs attention', filters: { focus: 'attention' } },
-];
+const PRESET_VIEW_NAMES = isDiscovery ? [] : ['Daily digest', 'Needs attention'];
 let savedViews = [];
 let currentSavedViewId = '';
 
 function allViews() {
-  return [...PRESET_VIEWS, ...savedViews];
+  return savedViews;
 }
 
 function currentFilterValues() {
@@ -194,12 +191,6 @@ function restoreFilters() {
 
 function renderSavedViews() {
   savedViewSelect.replaceChildren(new Option('Choose a view', ''));
-  if (PRESET_VIEWS.length) {
-    const presetGroup = document.createElement('optgroup');
-    presetGroup.label = 'Preset views';
-    for (const view of PRESET_VIEWS) presetGroup.appendChild(new Option(view.name, view.id));
-    savedViewSelect.appendChild(presetGroup);
-  }
   if (savedViews.length) {
     const savedGroup = document.createElement('optgroup');
     savedGroup.label = 'Your saved views';
@@ -207,7 +198,7 @@ function renderSavedViews() {
     savedViewSelect.appendChild(savedGroup);
   }
   savedViewSelect.value = currentSavedViewId;
-  $('#delete-view').disabled = !currentSavedViewId || currentSavedViewId.startsWith('preset:');
+  $('#delete-view').disabled = !currentSavedViewId;
 }
 
 function setSavedViewStatus(message, isError = false) {
@@ -591,7 +582,6 @@ mineCheckbox.addEventListener('change', onFilterChange);
 function applyView(view) {
   currentSavedViewId = view.id;
   applyFilterValues(view.filters);
-  setSavedViewStatus(`Showing “${view.name}”.`);
   renderSavedViews();
   loadItems().catch(showLoadError);
 }
@@ -602,15 +592,18 @@ savedViewSelect.addEventListener('change', () => {
     currentSavedViewId = '';
     renderSavedViews();
     saveFilters();
-    setSavedViewStatus('Using current filters.');
+    setSavedViewStatus('');
     return;
   }
   applyView(view);
 });
 
 $('#card-stale-button').addEventListener('click', () => {
-  applyView(PRESET_VIEWS.find((view) => view.id === 'preset:needs-attention'));
-  $('#f-focus').focus({ preventScroll: true });
+  const focusFilter = filterEls.focus;
+  if (!focusFilter) return;
+  focusFilter.value = 'attention';
+  onFilterChange({ target: focusFilter });
+  focusFilter.focus({ preventScroll: true });
 });
 
 $('#save-view').addEventListener('click', () => {
@@ -631,7 +624,8 @@ $('#save-view-form').addEventListener('submit', (event) => {
     error.hidden = false;
     return;
   }
-  if (allViews().some((view) => view.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
+  if (PRESET_VIEW_NAMES.some((presetName) => presetName.toLocaleLowerCase() === name.toLocaleLowerCase()) ||
+    allViews().some((view) => view.name.toLocaleLowerCase() === name.toLocaleLowerCase())) {
     error.textContent = 'A view with that name already exists.';
     error.hidden = false;
     return;

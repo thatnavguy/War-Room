@@ -205,7 +205,7 @@ Deep navy anchors the shell and table headers; cool slate neutrals support the w
 
 The wide layout uses a fixed 224px navigation rail and a centered content region. At medium desktop widths the rail narrows to 196px. At 960px and below, navigation becomes a horizontal top strip, the dashboard table becomes labeled work-item rows, and filters wrap to available space. At 420px and below, horizontal padding and navigation gaps tighten further.
 
-The dashboard order is heading and sync action, compact workload counts, then search, filters, and all touched work. Keep the primary filter row focused on work context; type remains visible and state remains visible and searchable in the list, but neither is a filter. Attention-worthy work is reached through preset views rather than a separate board: Daily digest and Needs attention sit at the top of the saved-view control and filter the work list in place. The stale workload count acts as a shortcut to the Needs attention preset. Optional breakdowns remain collapsed.
+The dashboard order is heading and sync action, compact workload counts, then search, filters, and all touched work. Keep the primary filter row focused on work context; type remains visible and state remains visible and searchable in the list, but neither is a filter. Attention-worthy work is reached through the Focus filter rather than a separate board: Daily digest and Needs attention filter the work list in place. The stale workload count sets Focus to Needs attention. Optional breakdowns remain collapsed.
 
 Work-item details use the full workspace width for field values, descriptions, acceptance criteria, repro steps, and revision history. Rich text wraps within that space without a separate narrow-column limit.
 
@@ -224,9 +224,9 @@ The desktop work-item table uses navy column headers with light text, matching s
 Column headers stay below the workspace toolbar while scrolling through the list.
 Narrow screens retain the labeled item layout rather than a sticky table header.
 
-The Needs attention preset includes only stale open items currently assigned to the user; the Daily digest preset includes open items due today, overdue, or changed today.
-Presets set the Focus filter and behave like saved views, but they cannot be deleted and their names are reserved.
-Choosing a preset replaces the current filters; changing any filter afterwards deselects it.
+The Needs attention focus includes only stale open items currently assigned to the user; Daily digest includes open items due today, overdue, or changed today.
+These built-in Focus choices are not saved views. Choosing one updates Focus while preserving other filters; changing any filter deselects the saved view, if one was selected.
+Their names are reserved for the built-in choices.
 
 The work list replaces the Iteration column with Due date. Use recorded source dates only.
 Due today uses amber with navy text; overdue uses the pale red surface with dark red text.

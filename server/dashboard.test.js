@@ -182,50 +182,61 @@ test('closed visibility and open-work focus filters switch without conflicting',
   assert.equal(requests.at(-1), '/api/items?focus=digest');
 });
 
-test('preset views are listed before saved views and filter the work list', async () => {
+test('focus filter provides presets and saved-view selector lists only user views', async () => {
   const requests = [];
   const page = dashboard(async (url) => {
     requests.push(url);
     return { ok: true, json: async () => ({ items: [], total: 0 }) };
   });
+  page.evaluate(`savedViews = [{ id: 'saved:example', name: 'My view', filters: { project: 'Example' } }];`);
   page.evaluate('renderSavedViews()');
   const select = page.elements.get('#saved-view-select');
-  const presetGroup = select.children.find((child) => child.label === 'Preset views');
-  assert.deepEqual(presetGroup.children.map((option) => option.textContent), ['Daily digest', 'Needs attention']);
+  const savedGroup = select.children.find((child) => child.label === 'Your saved views');
+  assert.deepEqual(savedGroup.children.map((option) => option.textContent), ['My view']);
+  const savedViewMarkup = dashboardHtml.match(/<select id="saved-view-select"[\s\S]*?<\/select>/)[0];
+  assert.doesNotMatch(savedViewMarkup, /Daily digest|Needs attention/);
+  assert.match(dashboardHtml, /<option value="digest">Daily digest<\/option>/);
+  assert.match(dashboardHtml, /<option value="attention">Needs attention<\/option>/);
   assert.equal(page.elements.get('#delete-view').disabled, true);
 
-  select.value = 'preset:daily-digest';
-  select.listeners.change();
+  page.elements.get('#f-focus').value = 'digest';
+  page.elements.get('#f-focus').listeners.change({ target: page.elements.get('#f-focus') });
   await page.flush();
   assert.equal(page.elements.get('#f-focus').value, 'digest');
   assert.equal(requests.at(-1), '/api/items?focus=digest');
-  assert.equal(page.elements.get('#delete-view').disabled, true);
-  assert.match(page.elements.get('#saved-view-status').textContent, /Daily digest/);
 
-  select.value = 'preset:needs-attention';
+  select.value = 'saved:example';
   select.listeners.change();
   await page.flush();
-  assert.equal(requests.at(-1), '/api/items?focus=attention');
+  assert.equal(requests.at(-1), '/api/items?project=Example');
+  assert.equal(page.elements.get('#delete-view').disabled, false);
+  assert.equal(page.elements.get('#saved-view-status').textContent, '');
+
+  select.value = '';
+  select.listeners.change();
+  assert.equal(page.elements.get('#saved-view-status').textContent, '');
+  assert.equal(page.elements.get('#f-focus').value, '');
 
   page.elements.get('#f-project').value = 'Example';
   page.elements.get('#f-project').listeners.change();
   await page.flush();
   assert.equal(page.evaluate('currentSavedViewId'), '');
-  assert.equal(requests.at(-1), '/api/items?focus=attention&project=Example');
+  assert.equal(requests.at(-1), '/api/items?project=Example');
 });
 
-test('the stale summary count opens the needs attention preset', async () => {
+test('the stale summary count selects the Focus needs attention filter', async () => {
   const requests = [];
   const page = dashboard(async (url) => {
     requests.push(url);
     return { ok: true, json: async () => ({ items: [], total: 0 }) };
   });
+  page.elements.get('#f-project').value = 'Example';
   page.elements.get('#card-stale-button').listeners.click();
   await page.flush();
-  assert.equal(requests.at(-1), '/api/items?focus=attention');
+  assert.equal(requests.at(-1), '/api/items?focus=attention&project=Example');
   assert.equal(page.elements.get('#f-focus').value, 'attention');
   assert.equal(page.elements.get('#f-focus').focusOptions.preventScroll, true);
-  assert.equal(page.evaluate('currentSavedViewId'), 'preset:needs-attention');
+  assert.equal(page.evaluate('currentSavedViewId'), '');
 });
 
 test('saved views cannot reuse a preset view name', () => {
@@ -236,11 +247,11 @@ test('saved views cannot reuse a preset view name', () => {
   assert.equal(page.elements.get('#saved-view-error').hidden, false);
 });
 
-test('restoring a preset view from the session keeps it selected', () => {
+test('legacy preset session state restores its Focus filter without selecting a saved view', () => {
   const page = dashboard(async () => ({ ok: true, json: async () => ({ items: [], total: 0 }) }));
   page.evaluate(`sessionStorage.setItem(FILTER_STORAGE_KEY, 'focus=digest&savedView=preset:daily-digest'); restoreFilters();`);
   assert.equal(page.elements.get('#f-focus').value, 'digest');
-  assert.equal(page.evaluate('currentSavedViewId'), 'preset:daily-digest');
+  assert.equal(page.evaluate('currentSavedViewId'), '');
   page.evaluate(`sessionStorage.setItem(FILTER_STORAGE_KEY, 'savedView=preset:unknown'); restoreFilters();`);
   assert.equal(page.evaluate('currentSavedViewId'), '');
 });

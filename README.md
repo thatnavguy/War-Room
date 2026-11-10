@@ -90,12 +90,11 @@ Restart the dashboard after editing the file manually.
   heaviest; later syncs only fetch what changed since the watermark.
   If sync reports an issue, the dashboard shows the error details.
   The server also logs them to `data\dashboard-error.log` when started with the Windows launcher.
-- The saved-view dropdown includes two built-in **preset views** that filter the work list:
+- The **Focus** filter includes two built-in choices that filter the work list:
   - **Daily digest** shows open items due today, overdue, or changed today.
   - **Needs attention** shows open items assigned to you with no update for the configured number of days.
-    The **need attention** summary count uses the same rule; choose it to open the preset.
-  Presets set the **Focus** filter, and you can adjust the other filters afterwards.
-  Presets cannot be deleted, and your own views cannot reuse a preset's name.
+    The **need attention** summary count selects this Focus choice.
+  You can combine either choice with the other filters. Preset names are reserved for these built-in choices.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
 - Filter by project, priority level, label, and assignment to you.
@@ -107,7 +106,7 @@ Restart the dashboard after editing the file manually.
   Dates are compared using your computer's local calendar day.
   Restart the dashboard and sync once after upgrading to load due dates for existing tracked items.
 - Save a set of search and filter settings as a named view, then choose it to use those settings again.
-  Saved views stay in this browser and appear below the preset views. Select a view and choose **Delete view** to remove it.
+  Saved views stay in this browser and appear in the saved-view dropdown. Select a view and choose **Delete view** to remove it.
 - Labels (Azure DevOps tags) appear beneath titles in the list and in item details.
   The **Label** filter lists labels from touched or mentioned work and matches a whole label, not part of its name.
   The Project filter only lists values from items you have touched or been mentioned on, including closed items.
