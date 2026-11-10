@@ -12,7 +12,7 @@ The primary user is the project owner, managing their own DevOps work.
 
 ## Product Purpose
 
-War Room helps its user keep track of work items they have touched and manage their DevOps work from one personal workspace. The current integration is Azure DevOps. Expanding to GitHub is a future goal.
+War Room helps its user keep track of work items they have touched and manage their DevOps work from one personal workspace. It supports Azure DevOps and GitHub.
 
 ## Positioning
 
@@ -26,9 +26,10 @@ The dashboard should surface work that needs attention before the wider workload
 
 ## Capabilities and Constraints
 
-- The current integration makes read-only calls to the user's Azure DevOps organization.
+- The app makes read-only calls to the user's Azure DevOps organization and GitHub host.
 - The app supports organization URL and Personal Access Token setup, optional project scoping, configurable sync lookback and stale-item thresholds, and local SQLite storage.
 - The dashboard supports search, project/priority/label filters, saved views, and an assigned-to-me filter. Work-item type remains visible; state remains visible and searchable. Neither is a filter.
+- Inspection Room contains only tracked GitHub pull requests. These items do not appear in Briefing Room, and Inspection Room keeps its filters, saved views, and columns separate.
 - Preset views filter the work list to attention-worthy work: Daily digest (due today, overdue, or changed today) and Needs attention (stale open work currently assigned to the user). The stale summary count opens the Needs attention preset.
 - The work list shows source due dates instead of iteration. Today and overdue dates have distinct colors and text labels.
 - Users can hide unrelated items locally and restore them from Hidden items.

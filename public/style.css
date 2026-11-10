@@ -508,7 +508,7 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
   .side-rail { position: static; width: auto; min-height: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 15px; }
   .brand { margin: 0 auto 0 0; font-size: 14px; }
   .brand-mark, .brand-mark img { width: 25px; height: 25px; }
-  .primary-nav { display: flex; gap: 4px; }
+  .primary-nav { display: flex; flex-wrap: wrap; gap: 4px; }
   .nav-link { min-height: 36px; gap: 6px; padding: 0 9px; font-size: 12px; }
   .nav-link svg { width: 16px; height: 16px; }
   .rail-account { display: none; }
@@ -574,7 +574,8 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
   .columns-options { left: 0; right: auto; width: 100%; }
   .side-rail { gap: 5px; padding-right: 10px; padding-left: 10px; }
   .brand { gap: 6px; font-size: 12px; }
-  .nav-link { padding: 0 7px; }
+  .primary-nav { flex: 1 1 100%; }
+  .nav-link { flex: 1 1 auto; justify-content: center; padding: 0 7px; }
   .topbar { padding-right: 11px; padding-left: 11px; }
   .topbar-actions { gap: 7px; }
   .sync-time { max-width: 98px; }

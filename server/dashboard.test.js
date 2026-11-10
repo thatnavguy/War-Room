@@ -287,6 +287,38 @@ test('Discovery Room uses local room-specific requests, navigation, and filter s
   assert.equal(page.elements.get('#f-mine').checked, false);
 });
 
+test('Inspection Room uses pull-request scoped requests and separate preferences', async () => {
+  const requests = [];
+  const page = dashboard(async (url) => {
+    requests.push(url);
+    const responses = {
+      '/api/providers': { providers: [{ id: 'github', label: 'GitHub', configured: true }] },
+      '/api/config': { configured: true },
+      '/api/summary?room=inspection': {
+        open: 1, recentlyUpdated: 1, stale: 0, staleDays: 30,
+        byState: [], byType: [], byProject: [], byIteration: [],
+      },
+      '/api/filters?room=inspection': { projects: ['Pull requests'], priorities: [], labels: [] },
+      '/api/items?room=inspection': { items: [], total: 0 },
+    };
+    assert.ok(Object.hasOwn(responses, url), `Unexpected request: ${url}`);
+    return { ok: true, json: async () => responses[url] };
+  }, '?room=inspection');
+  await page.evaluate('init()');
+  assert.equal(page.elements.get('#page-title').textContent, 'Inspection Room');
+  assert.equal(page.elements.get('#work-title').textContent, 'Tracked pull requests');
+  assert.equal(page.elements.get('#nav-inspection').attributes['aria-current'], 'page');
+  assert.equal(page.evaluate('FILTER_STORAGE_KEY'), 'mission-hall.inspection-filters');
+  assert.equal(page.evaluate('SAVED_VIEWS_KEY'), 'mission-hall.saved-inspection-views');
+  assert.equal(page.evaluate('COLUMNS_STORAGE_KEY'), 'mission-hall.inspection-columns');
+  assert.equal(page.evaluate('itemHref(42)'), '/item.html?id=42&room=inspection');
+  assert.ok(requests.includes('/api/summary?room=inspection'));
+  assert.ok(requests.includes('/api/filters?room=inspection'));
+  assert.ok(requests.includes('/api/items?room=inspection'));
+  assert.equal(page.elements.get('#results-body').children[0].children[0].textContent,
+    'No tracked GitHub pull requests match these filters.');
+});
+
 test('Discovery Room renders item links without hide actions and loads further results', async () => {
   const requests = [];
   const item = (id) => ({

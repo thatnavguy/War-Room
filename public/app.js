@@ -2,6 +2,7 @@
 
 const $ = (sel) => document.querySelector(sel);
 const isDiscovery = new URLSearchParams(location.search).get('room') === 'discovery';
+const isInspection = new URLSearchParams(location.search).get('room') === 'inspection';
 const COLUMN_DEFS = [
   { id: 'id', label: 'ID', required: true },
   { id: 'title', label: 'Title', required: true },
@@ -13,7 +14,8 @@ const COLUMN_DEFS = [
   { id: 'changed', label: 'Changed' },
   { id: 'priority', label: 'Priority level' },
 ];
-const COLUMNS_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-columns' : 'mission-hall.work-columns';
+const COLUMNS_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-columns'
+  : isInspection ? 'mission-hall.inspection-columns' : 'mission-hall.work-columns';
 const defaultColumns = () => COLUMN_DEFS.map(({ id }) => ({ id, visible: true }));
 let columns = defaultColumns();
 
@@ -142,8 +144,10 @@ if (isDiscovery) {
   delete filterEls.focus;
   delete filterEls.hidden;
 }
-const FILTER_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-filters' : 'mission-hall.work-filters';
-const SAVED_VIEWS_KEY = isDiscovery ? 'mission-hall.saved-discovery-views' : 'mission-hall.saved-work-views';
+const FILTER_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-filters'
+  : isInspection ? 'mission-hall.inspection-filters' : 'mission-hall.work-filters';
+const SAVED_VIEWS_KEY = isDiscovery ? 'mission-hall.saved-discovery-views'
+  : isInspection ? 'mission-hall.saved-inspection-views' : 'mission-hall.saved-work-views';
 const savedViewSelect = $('#saved-view-select');
 const savedViewStatus = $('#saved-view-status');
 const PRESET_VIEW_NAMES = isDiscovery ? [] : ['Daily digest', 'Needs attention'];
@@ -259,7 +263,8 @@ function dueDateStatus(iso, today = new Date()) {
 }
 
 async function loadSummary() {
-  const res = await fetch(isDiscovery ? '/api/sync/status' : '/api/summary');
+  const res = await fetch(isDiscovery ? '/api/sync/status'
+    : isInspection ? '/api/summary?room=inspection' : '/api/summary');
   const s = await res.json();
   if (!res.ok) throw new Error(s.error || 'Could not load the work summary.');
   $('#last-sync').textContent = s.lastSync
@@ -296,7 +301,8 @@ function renderGroup(sel, rows) {
 }
 
 async function loadFilters() {
-  const res = await fetch(isDiscovery ? '/api/filters?room=discovery' : '/api/filters');
+  const res = await fetch(isDiscovery ? '/api/filters?room=discovery'
+    : isInspection ? '/api/filters?room=inspection' : '/api/filters');
   const f = await res.json();
   if (!res.ok) throw new Error(f.error || 'Could not load work filters.');
   fill(filterEls.project, f.projects, 'All projects');
@@ -306,7 +312,7 @@ async function loadFilters() {
   for (const provider of providers) {
     filterEls.provider.appendChild(new Option(provider.label, provider.id));
   }
-  $('#provider-filter').hidden = providers.length < 2;
+  $('#provider-filter').hidden = isInspection || providers.length < 2;
   restoreFilters();
   renderSavedViews();
 }
@@ -322,7 +328,8 @@ function fill(select, values, placeholder) {
 }
 
 function itemHref(id) {
-  return `/item.html?id=${id}${isDiscovery ? '&room=discovery' : ''}`;
+  const room = isDiscovery ? 'discovery' : isInspection ? 'inspection' : '';
+  return `/item.html?id=${id}${room ? `&room=${room}` : ''}`;
 }
 
 async function loadItems(append = false) {
@@ -330,6 +337,7 @@ async function loadItems(append = false) {
   saveFilters();
   const params = new URLSearchParams();
   if (isDiscovery) params.set('room', 'discovery');
+  else if (isInspection) params.set('room', 'inspection');
   if (searchInput.value.trim()) params.set('search', searchInput.value.trim());
   for (const [key, el] of Object.entries(filterEls)) {
     if (el.value) params.set(key, el.value);
@@ -355,6 +363,7 @@ async function loadItems(append = false) {
     cell.colSpan = columnCount();
     cell.textContent = isDiscovery
       ? 'No recent, open items without your involvement match these filters. Clear filters or change the discovery window in Settings. Discovery uses only items already stored on this computer.'
+      : isInspection ? 'No tracked GitHub pull requests match these filters.'
       : data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
     row.appendChild(cell);
     tbody.appendChild(row);
@@ -747,6 +756,16 @@ async function init() {
     for (const selector of ['#work-summary', '#focus-filter', '#visibility-filter', '#mine-filter', '#work-actions-heading']) {
       $(selector).hidden = true;
     }
+  } else if (isInspection) {
+    document.title = 'Inspection Room — War Room';
+    $('#page-title').textContent = 'Inspection Room';
+    $('#room-breadcrumb').textContent = 'Inspection Room';
+    $('#work-title').textContent = 'Tracked pull requests';
+    $('#nav-briefing').classList.remove('is-active');
+    $('#nav-briefing').removeAttribute('aria-current');
+    $('#nav-inspection').classList.add('is-active');
+    $('#nav-inspection').setAttribute('aria-current', 'page');
+    $('#page-intro').textContent = 'GitHub pull requests you have touched, kept separate from your other work.';
   }
   loadSavedViews();
   renderSavedViews();

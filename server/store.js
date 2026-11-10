@@ -4,7 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 const config = require('./config');
-  
+
+const INSPECTION_FILTER = "w.provider = 'github' AND w.type = 'Pull Request'";
+
 function createStore(filename, legacyScope = '') {
   fs.mkdirSync(path.dirname(filename), { recursive: true });
   const db = new Database(filename);
@@ -272,6 +274,8 @@ function createStore(filename, legacyScope = '') {
       where.push("julianday(w.changed_date) >= julianday('now', '-' || @discoveryDays || ' days')");
       params.discoveryDays = config.discoveryDays;
     }
+    if (filters.inspection) where.push(INSPECTION_FILTER);
+    else if (!filters.discovery) where.push(`NOT (${INSPECTION_FILTER})`);
 
     if (filters.focus === 'attention') filters.assignedToMe = true;
   
@@ -345,22 +349,24 @@ function createStore(filename, legacyScope = '') {
     return { ...item, touches };
   }
   
-  function getSummary(staleDays) {
+  function getSummary(staleDays, inspection = false) {
     const one = (sql, params) => db.prepare(sql).get(params || {});
     const all = (sql, params) => db.prepare(sql).all(params || {});
+    const roomFilter = inspection ? `AND ${INSPECTION_FILTER}` : `AND NOT (${INSPECTION_FILTER})`;
   
     const open = one(`
       SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
-      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM}
+      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM} ${roomFilter}
     `).n;
   
     const recentlyUpdated = one(`
       SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
       WHERE w.is_closed = 0 AND ${VISIBLE_ITEM}
         AND w.changed_date >= datetime('now', '-7 days')
+        ${roomFilter}
     `).n;
   
-    const assigned = buildItemQuery({ assignedToMe: true });
+    const assigned = buildItemQuery({ assignedToMe: true, inspection });
     const stale = one(`
       SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
       WHERE ${assigned.where}
@@ -369,12 +375,14 @@ function createStore(filename, legacyScope = '') {
   
     const group = (col) => all(`
       SELECT w.${col} AS key, COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN}
-      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM}
+      WHERE w.is_closed = 0 AND ${VISIBLE_ITEM} ${roomFilter}
       GROUP BY w.${col} ORDER BY n DESC
     `);
   
     const lastSync = latestSyncWatermark();
-    const totalTracked = one('SELECT COUNT(*) AS n FROM work_items').n;
+    const totalTracked = inspection
+      ? one(`SELECT COUNT(DISTINCT w.id) AS n FROM work_items w ${TOUCH_JOIN} WHERE ${INSPECTION_FILTER}`).n
+      : one(`SELECT COUNT(*) AS n FROM work_items w WHERE NOT (${INSPECTION_FILTER})`).n;
   
     return {
       open,
@@ -390,7 +398,27 @@ function createStore(filename, legacyScope = '') {
     };
   }
   
-  function getFilterValues(discovery = false) {
+  function getFilterValues(room = '') {
+    const discovery = room === true || room === 'discovery';
+    const inspection = room === 'inspection';
+    if (inspection) {
+      const pick = (column) => db.prepare(`
+        SELECT DISTINCT w.${column} AS v FROM work_items w
+        WHERE ${INSPECTION_FILTER} AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
+          AND w.${column} IS NOT NULL AND w.${column} != ''
+        ORDER BY w.${column}
+      `).all().map((row) => row.v);
+      return {
+        projects: pick('project'),
+        types: pick('type'),
+        states: pick('state'),
+        providers: pick('provider'),
+        priorities: pick('priority_level'),
+        labels: [...new Set(pick('tags').flatMap(splitLabels))].sort((a, b) => a.localeCompare(b)),
+        iterations: [],
+        touches: [],
+      };
+    }
     if (discovery) {
       const { where, params } = buildItemQuery({ discovery: true });
       const pick = (column) => db.prepare(`
@@ -410,12 +438,14 @@ function createStore(filename, legacyScope = '') {
       };
     }
     const pick = (col) =>
-      db.prepare(`SELECT DISTINCT ${col} AS v FROM work_items WHERE ${col} IS NOT NULL AND ${col} != '' ORDER BY ${col}`)
+      db.prepare(`SELECT DISTINCT w.${col} AS v FROM work_items w
+        WHERE NOT (${INSPECTION_FILTER}) AND w.${col} IS NOT NULL AND w.${col} != '' ORDER BY w.${col}`)
         .all().map((r) => r.v);
     return {
       projects: db.prepare(`
         SELECT DISTINCT w.project AS v FROM work_items w
         WHERE w.project != ''
+          AND NOT (${INSPECTION_FILTER})
           AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
         ORDER BY w.project
       `).all().map((row) => row.v),
@@ -423,18 +453,20 @@ function createStore(filename, legacyScope = '') {
       states: pick('state'),
       providers: pick('provider'),
       labels: [...new Set(db.prepare(`
-        SELECT w.tags FROM work_items w WHERE w.tags IS NOT NULL
+        SELECT w.tags FROM work_items w WHERE w.tags IS NOT NULL AND NOT (${INSPECTION_FILTER})
           AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
       `).all().flatMap((row) => splitLabels(row.tags)))].sort((a, b) => a.localeCompare(b)),
       priorities: db.prepare(`
         SELECT DISTINCT w.priority_level AS v FROM work_items w
         WHERE w.priority_level IS NOT NULL AND w.priority_level != ''
+          AND NOT (${INSPECTION_FILTER})
           AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
         ORDER BY w.priority_level
       `).all().map((row) => row.v),
       iterations: db.prepare(`
         SELECT DISTINCT w.iteration_path AS v FROM work_items w
         WHERE w.iteration_path IS NOT NULL AND w.iteration_path != ''
+          AND NOT (${INSPECTION_FILTER})
           AND EXISTS (SELECT 1 FROM touches t WHERE t.work_item_id = w.id)
         ORDER BY w.iteration_path
       `).all().map((row) => row.v),

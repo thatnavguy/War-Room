@@ -64,6 +64,13 @@ test('items opened from discovery return to Discovery Room', () => {
   assert.match(get('#history-status').textContent, /Discovery Room/);
 });
 
+test('items opened from Inspection Room return to Inspection Room', () => {
+  const { get } = page('?room=inspection');
+  assert.equal(get('#room-back-link').href, '/?room=inspection');
+  assert.equal(get('#room-back-label').textContent, 'Inspection Room');
+  assert.match(get('#history-status').textContent, /Inspection Room/);
+});
+
 test('marks the section at the sticky-menu boundary as the current location', () => {
   const { context, get } = page();
   const nav = get('#item-sections');

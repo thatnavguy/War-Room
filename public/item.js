@@ -71,8 +71,10 @@ window.addEventListener('resize', updateCurrentSection);
 async function load() {
   const params = new URLSearchParams(location.search);
   const fromDiscovery = params.get('room') === 'discovery';
-  const roomName = fromDiscovery ? 'Discovery Room' : 'Briefing Room';
-  $('#room-back-link').href = fromDiscovery ? '/?room=discovery' : '/';
+  const fromInspection = params.get('room') === 'inspection';
+  const roomName = fromDiscovery ? 'Discovery Room' : fromInspection ? 'Inspection Room' : 'Briefing Room';
+  $('#room-back-link').href = fromDiscovery ? '/?room=discovery'
+    : fromInspection ? '/?room=inspection' : '/';
   $('#room-back-label').textContent = roomName;
   const id = params.get('id');
   if (!id) {

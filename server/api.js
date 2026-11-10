@@ -115,12 +115,13 @@ router.get('/me', (req, res) => {
 });
 
 router.get('/summary', (req, res) => {
-  res.json(db.getSummary(config.staleDays));
+  res.json(db.getSummary(config.staleDays, req.query.room === 'inspection'));
 });
 
 router.get('/items', (req, res) => {
   const filters = {
     discovery: req.query.room === 'discovery',
+    inspection: req.query.room === 'inspection',
     search: req.query.search || '',
     project: req.query.project || '',
     provider: req.query.provider || '',
@@ -261,7 +262,7 @@ router.get('/attachments/image', async (req, res) => {
 });
 
 router.get('/filters', (req, res) => {
-  res.json(db.getFilterValues(req.query.room === 'discovery'));
+  res.json(db.getFilterValues(req.query.room || ''));
 });
 
 module.exports = router;

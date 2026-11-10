@@ -86,6 +86,10 @@ Restart the dashboard after editing the file manually.
   Discovery is most useful for Azure DevOps, which also stores recently changed items beyond your own work.
   GitHub sync searches for items involving you, so its Discovery Room results may be empty.
 
+- Open **Inspection Room** to see tracked GitHub pull requests without other work items.
+  Pull requests no longer appear in Briefing Room. Inspection Room keeps its filters,
+  saved views, and column layout separate.
+
 - Click **Sync** to incrementally fetch new/changed items. The first sync is the
   heaviest; later syncs only fetch what changed since the watermark.
   If sync reports an issue, the dashboard shows the error details.
@@ -174,7 +178,7 @@ with an `auto-sync` prefix, and the next scheduled run tries again.
 GitHub issues and pull requests are discovered with the search API (`assignee:@me`,
 `author:@me`, `involves:@me` since the last watermark).
 Each search runs separately for `is:issue` and `is:pull-request`, as GitHub requires.
-Both types appear in the same feed. An item is unique by provider,
+Issues appear in Briefing Room; pull requests appear in Inspection Room. An item is unique by provider,
 source scope, and external ID. For Azure DevOps, the scope is the organization URL;
 for GitHub it is the host plus repository (`github.com/owner/repo`), so issue numbers
 never collide across repositories. Sync checkpoints and profile names are kept
