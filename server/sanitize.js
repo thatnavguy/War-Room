@@ -103,6 +103,15 @@ function fieldValueText(v) {
   return String(v);
 }
 
+function activityDate(update) {
+  const dates = [
+    update.revisedDate,
+    update.fields?.['System.ChangedDate']?.newValue,
+  ];
+  return dates.find((date) =>
+    typeof date === 'string' && !date.startsWith('9999') && Number.isFinite(Date.parse(date))) || null;
+}
+
 // updates: raw array from ADO updates endpoint
 function summarizeUpdates(updates, identityId = '') {
   const result = [];
@@ -124,7 +133,7 @@ function summarizeUpdates(updates, identityId = '') {
 
     result.push({
       rev: u.rev,
-      date: u.revisedDate || null,
+      date: activityDate(u),
       by: personName(u.revisedBy),
       comment,
       changes,

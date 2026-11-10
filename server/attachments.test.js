@@ -23,6 +23,26 @@ test('preserves screenshots using a local authenticated image endpoint', () => {
   }
 });
 
+test('uses the work item changed date when Azure DevOps returns its revision-date sentinel', () => {
+  const revisions = summarizeUpdates([
+    {
+      rev: 2,
+      revisedDate: '9999-01-01T00:00:00Z',
+      fields: {
+        'System.History': { newValue: 'A comment' },
+        'System.ChangedDate': { newValue: '2026-10-28T10:15:00Z' },
+      },
+    },
+    {
+      rev: 1,
+      revisedDate: '9999-01-01T00:00:00Z',
+      fields: { 'System.History': { newValue: 'A comment without a real date' } },
+    },
+  ]);
+  assert.equal(revisions.find(({ rev }) => rev === 2).date, '2026-10-28T10:15:00Z');
+  assert.equal(revisions.find(({ rev }) => rev === 1).date, null);
+});
+
 test('rejects external hosts, other organizations, active content, and non-attachment paths', () => {
   const original = config.orgUrl;
   config.orgUrl = 'https://dev.azure.com/example';

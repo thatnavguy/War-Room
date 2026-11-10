@@ -28,6 +28,7 @@
     </header>
     <nav id="item-sections" class="item-section-nav" aria-label="Work item sections" hidden>
       <a href="#detail">Details</a>
+      <a href="#why">Why it’s in your work list</a>
       <a href="#sec-description" hidden>Description</a>
       <a href="#sec-acceptance" hidden>Acceptance criteria</a>
       <a href="#sec-repro" hidden>Repro steps</a>
@@ -39,7 +40,14 @@
     </nav>
     <div class="subpage-content item-main">
       <div class="subpage-heading"><div><h1 id="item-title">Work item</h1><p>Details and activity for this item.</p></div></div>
-      <section id="detail" class="detail" aria-label="Work item fields"><h2 class="section-heading">Details</h2></section>
+      <section id="detail" class="detail" aria-label="Work item fields">
+        <h2 class="section-heading">Details</h2>
+        <div id="detail-highlights" class="detail-highlights" aria-label="Current status"></div>
+        <details id="detail-more" class="detail-more">
+          <summary>More work-item fields</summary>
+          <div id="detail-fields" class="detail-fields"></div>
+        </details>
+      </section>
       <section id="why" aria-label="Why this item is tracked">
         <h2 id="why-heading" class="section-heading">Why it’s in your work list</h2>
         <ul id="touches" class="touches"></ul>
@@ -76,6 +84,10 @@
         </div>
         <p id="history-status" class="muted" role="status">Loading…</p>
         <ol id="history-list" class="history"></ol>
+        <details id="older-history" class="older-history" hidden>
+          <summary id="older-history-summary">Show older activity</summary>
+          <ol id="older-history-list" class="history"></ol>
+        </details>
       </section>
       <footer class="workspace-footer"><span>War Room</span><span id="item-source-caption">Work item</span></footer>
     </div>

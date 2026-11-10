@@ -14,7 +14,8 @@ const TOUCH_LABELS = {
 
 function fmtDate(iso) {
   if (!iso) return '–';
-  return new Date(iso).toLocaleString();
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? '–' : date.toLocaleString();
 }
 
 function showRichText(sectionSel, targetSel, html) {
@@ -41,6 +42,31 @@ function setSectionVisible(sectionId, visible) {
   $(`#${sectionId}`).hidden = !visible;
   $(`#item-sections a[href="#${sectionId}"]`).hidden = !visible;
 }
+
+function updateCurrentSection() {
+  const sectionNav = $('#item-sections');
+  if (sectionNav.hidden) return;
+  const links = [...sectionNav.querySelectorAll('a[href^="#"]:not([hidden])')];
+  if (!links.length) return;
+
+  const threshold = sectionNav.getBoundingClientRect().bottom + 16;
+  let current = links[0];
+  for (const link of links) {
+    const section = $(link.getAttribute('href'));
+    if (!section || section.hidden) continue;
+    if (section.getBoundingClientRect().top > threshold) break;
+    current = link;
+  }
+  for (const link of sectionNav.querySelectorAll('a[aria-current="location"]')) {
+    link.removeAttribute('aria-current');
+    link.classList.remove('is-current');
+  }
+  current.setAttribute('aria-current', 'location');
+  current.classList.add('is-current');
+}
+
+window.addEventListener('scroll', updateCurrentSection, { passive: true });
+window.addEventListener('resize', updateCurrentSection);
 
 async function load() {
   const params = new URLSearchParams(location.search);
@@ -78,24 +104,40 @@ async function load() {
     $('#source-link').hidden = false;
   }
 
+  const highlightFields = [
+    ['State', item.state],
+    ['Priority level', item.priority_level],
+    ['Assigned to', item.assigned_to],
+    ['Last changed', fmtDate(item.changed_date)],
+  ];
+  const highlights = $('#detail-highlights');
+  for (const [label, value] of highlightFields) {
+    const div = document.createElement('div');
+    const lbl = document.createElement('span');
+    lbl.className = 'field-label';
+    lbl.textContent = label;
+    const val = document.createElement('span');
+    val.textContent = value == null || value === '' ? '–' : value;
+    if (label === 'Assigned to' && item.my_display_name && value === item.my_display_name) {
+      val.className = 'my-name';
+    }
+    div.append(lbl, val);
+    highlights.appendChild(div);
+  }
+
   const fields = [
     ['ID', item.external_id],
     ['Source', item.provider_label],
-    ['Priority level', item.priority_level],
     ['Type', item.type],
-    ['State', item.state],
     ['Project', item.project],
-    ['Assigned to', item.assigned_to],
     ['Created by', item.created_by],
     ['Created', fmtDate(item.created_date)],
     ['Changed by', item.changed_by],
-    ['Changed', fmtDate(item.changed_date)],
     ['Iteration', item.iteration_path],
     ['Area', item.area_path],
     ['Labels', item.tags],
   ];
-
-  const detail = $('#detail');
+  const detailFields = $('#detail-fields');
   for (const [label, value] of fields) {
     const div = document.createElement('div');
     const lbl = document.createElement('span');
@@ -103,11 +145,11 @@ async function load() {
     lbl.textContent = label;
     const val = document.createElement('span');
     val.textContent = value == null || value === '' ? '–' : value;
-    if (['Assigned to', 'Created by', 'Changed by'].includes(label) && item.my_display_name && value === item.my_display_name) {
+    if (['Created by', 'Changed by'].includes(label) && item.my_display_name && value === item.my_display_name) {
       val.className = 'my-name';
     }
     div.append(lbl, val);
-    detail.appendChild(div);
+    detailFields.appendChild(div);
   }
 
   const touches = $('#touches');
@@ -138,7 +180,9 @@ async function load() {
     section.tabIndex = -1;
   }
   sectionNav.hidden = false;
+  updateCurrentSection();
   await Promise.all([loadHistory(id), loadRelatedLinks(id), loadAttachments(id)]);
+  updateCurrentSection();
 }
 
 async function loadAttachments(id) {
@@ -270,10 +314,13 @@ async function loadHistory(id) {
     if (!res.ok) throw new Error(data.error || 'Failed to load history');
 
     const list = $('#history-list');
+    const olderList = $('#older-history-list');
+    const olderHistory = $('#older-history');
     const revs = data.revisions || [];
     list.replaceChildren();
+    olderList.replaceChildren();
 
-    for (const r of revs) {
+    for (const [index, r] of revs.entries()) {
       const li = document.createElement('li');
       li.className = 'history-entry';
       li.dataset.hasComment = 'false';
@@ -318,8 +365,10 @@ async function loadHistory(id) {
         li.appendChild(ul);
       }
 
-      list.appendChild(li);
+      (index < 5 ? list : olderList).appendChild(li);
     }
+    olderHistory.hidden = olderList.childElementCount === 0;
+    $('#older-history-summary').textContent = `Show older activity (${olderList.childElementCount})`;
     list.dataset.loaded = 'true';
     filterHistory();
   } catch (err) {
@@ -332,12 +381,21 @@ function filterHistory() {
   if (list.dataset.loaded !== 'true') return;
   const commentsOnly = $('#comments-only').checked;
   let visible = 0;
-  for (const entry of list.children) {
-    entry.hidden = commentsOnly && entry.dataset.hasComment !== 'true';
-    if (!entry.hidden) visible++;
-    const changes = entry.querySelector('.history-changes');
-    if (changes) changes.hidden = commentsOnly;
+  const olderList = $('#older-history-list');
+  let visibleOlder = 0;
+  for (const historyList of [list, olderList]) {
+    for (const entry of historyList.children) {
+      entry.hidden = commentsOnly && entry.dataset.hasComment !== 'true';
+      if (!entry.hidden) {
+        visible++;
+        if (historyList === olderList) visibleOlder++;
+      }
+      const changes = entry.querySelector('.history-changes');
+      if (changes) changes.hidden = commentsOnly;
+    }
   }
+  $('#older-history').hidden = visibleOlder === 0;
+  $('#older-history-summary').textContent = `Show older ${commentsOnly ? 'comments' : 'activity'} (${visibleOlder})`;
   $('#history-status').textContent = visible === 0
     ? (commentsOnly ? 'No comments on this work item.' : 'No revisions.')
     : `${visible} ${commentsOnly ? (visible === 1 ? 'comment' : 'comments') : (visible === 1 ? 'revision' : 'revisions')}`;
