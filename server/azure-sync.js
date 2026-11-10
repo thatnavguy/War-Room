@@ -55,10 +55,106 @@ function itemWebUrl(item) {
   return `${config.orgUrl}/${encodeURIComponent(item.project)}/_workitems/edit/${item.id}`;
 }
 
+async function syncPullRequests(identity, me, stats) {
+  const repositories = (await ado.getGitRepositories()).filter((repository) =>
+    repository.id && repository.name && repository.project?.name && !repository.isDisabled);
+  const pullRequests = new Map();
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < repositories.length) {
+      const repository = repositories[cursor++];
+      const [createdByMe, reviewerForMe] = await Promise.all([
+        ado.getPullRequests(repository.id, me.id, 'creatorId'),
+        ado.getPullRequests(repository.id, me.id, 'reviewerId'),
+      ]);
+      for (const items of [createdByMe, reviewerForMe]) {
+        for (const pullRequest of items) {
+          if (!['active', 'completed', 'abandoned'].includes(pullRequest.status) ||
+              !Number.isSafeInteger(pullRequest.pullRequestId)) continue;
+          const createdByMeNow = String(pullRequest.createdBy?.id || '').toLowerCase() === me.id;
+          const reviewer = (pullRequest.reviewers || []).find((entry) =>
+            String(entry.id || '').toLowerCase() === me.id);
+          if (!createdByMeNow && !reviewer) continue;
+
+          const externalId = `pr:${repository.id.toLowerCase()}:${pullRequest.pullRequestId}`;
+          const existing = pullRequests.get(externalId);
+          pullRequests.set(externalId, {
+            externalId,
+            repository,
+            pullRequest,
+            createdByMe: Boolean(existing?.createdByMe || createdByMeNow),
+            reviewer: existing?.reviewer || reviewer || null,
+          });
+        }
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(6, repositories.length) }, worker));
+  const candidates = [...pullRequests.values()];
+  cursor = 0;
+  async function detailsWorker() {
+    while (cursor < candidates.length) {
+      const candidate = candidates[cursor++];
+      const details = await ado.getPullRequest(
+        candidate.repository.id, candidate.pullRequest.pullRequestId
+      );
+      Object.assign(candidate.pullRequest, details);
+      candidate.createdByMe = String(candidate.pullRequest.createdBy?.id || '').toLowerCase() === me.id;
+      candidate.reviewer = (candidate.pullRequest.reviewers || []).find((entry) =>
+        String(entry.id || '').toLowerCase() === me.id) || null;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(6, candidates.length) }, detailsWorker));
+
+  const eligibleIds = new Set();
+  for (const { externalId, repository, pullRequest, createdByMe, reviewer } of pullRequests.values()) {
+    if (!['active', 'completed', 'abandoned'].includes(pullRequest.status) || (!createdByMe && !reviewer)) continue;
+    eligibleIds.add(externalId);
+    const item = {
+      provider: 'azure-devops',
+      source_scope: config.orgUrl,
+      external_id: externalId,
+      rev: 0,
+      title: pullRequest.title || '',
+      type: 'Pull Request',
+      state: { active: 'Active', completed: 'Completed', abandoned: 'Abandoned' }[pullRequest.status],
+      assigned_to: reviewer ? (identity.displayName || null) : null,
+      created_by: pullRequest.createdBy?.displayName || null,
+      created_date: pullRequest.creationDate || null,
+      changed_by: null,
+      changed_date: pullRequest.lastUpdatedDate || pullRequest.closedDate || null,
+      project: repository.project.name,
+      description: pullRequest.description || null,
+      url: `${config.orgUrl}/${encodeURIComponent(repository.project.name)}/_git/${encodeURIComponent(repository.name)}/pullrequest/${pullRequest.pullRequestId}`,
+      is_closed: pullRequest.status !== 'active',
+      synced_at: new Date().toISOString(),
+    };
+    const localId = db.saveItem(item);
+    stats.upserted++;
+    if (createdByMe) {
+      db.saveTouch(localId, 'created', item.created_date);
+      stats.touches++;
+    }
+    if (reviewer) {
+      db.saveTouch(localId, 'assigned', item.changed_date);
+      stats.touches++;
+    }
+  }
+  for (const externalId of db.sourceItemIds('azure-devops', config.orgUrl)
+    .filter((id) => id.startsWith('pr:') && !eligibleIds.has(id))) {
+    const localId = db.findItemId('azure-devops', config.orgUrl, externalId);
+    if (localId) db.clearTouches(localId);
+  }
+  stats.pullRequests = eligibleIds.size;
+  stats.candidates += eligibleIds.size;
+}
+
 async function runSync() {
   if (running) return { skipped: true, reason: 'Sync already in progress' };
   running = true;
-  const stats = { candidates: 0, upserted: 0, deepScanned: 0, touches: 0, errors: [] };
+  const stats = { candidates: 0, upserted: 0, deepScanned: 0, touches: 0, pullRequests: 0, errors: [] };
 
   try {
     const identity = await ado.getMyIdentity();
@@ -89,7 +185,9 @@ async function runSync() {
 
     const candidateIds = new Set([...everAssigned, ...created, ...changedByMe, ...changedSince]);
     if (!db.getSyncState('priorityVersion') || !db.getSyncState('dueDateVersion') || latestCommentsBackfill) {
-      for (const id of db.sourceItemIds('azure-devops', config.orgUrl)) candidateIds.add(Number(id));
+      for (const id of db.sourceItemIds('azure-devops', config.orgUrl)) {
+        if (/^\d+$/.test(id)) candidateIds.add(Number(id));
+      }
     }
     stats.candidates = candidateIds.size;
 
@@ -168,6 +266,8 @@ async function runSync() {
       }
     }
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+    await syncPullRequests(identity, me, stats);
 
     if (stats.errors.length === 0) {
       db.setSyncState('lastSync', now);

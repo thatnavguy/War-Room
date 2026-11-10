@@ -23,6 +23,8 @@ test('mention-only items enter the list and failed scans retry backfill without 
     saveItem: () => 100,
     saveTouch: (id, type, date) => touches.push({ id, type, date }),
     sourceItemIds: () => [],
+    findItemId: () => null,
+    clearTouches() {},
     setLatestCommentMention: (id, identityId, mentioned) => latestComments.push({ id, identityId, mentioned }),
   };
   require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: store };
@@ -30,6 +32,8 @@ test('mention-only items enter the list and failed scans retry backfill without 
   Object.assign(config, { lookbackDays: 365, orgUrl: 'https://dev.azure.com/example' });
   Object.assign(ado, {
     getMyIdentity: async () => ({ id: me, displayName: 'Example User' }),
+    getGitRepositories: async () => [],
+    getPullRequests: async () => [],
     queryEverAssigned: async () => [],
     queryCreatedByMe: async () => [],
     queryChangedByMe: async () => [],
@@ -89,6 +93,8 @@ test('due-date upgrade refreshes existing tracked items once and retries failed 
       getSyncState: (key) => state.get(key) || null,
       setSyncState: (key, value) => state.set(key, value),
       sourceItemIds: () => ['99'],
+      findItemId: () => null,
+      clearTouches() {},
       saveItem: (item) => {
         if (fail) throw new Error('Temporary save failure');
         saved.push(item);
@@ -101,6 +107,8 @@ test('due-date upgrade refreshes existing tracked items once and retries failed 
   Object.assign(config, { orgUrl: 'https://dev.azure.com/example' });
   Object.assign(ado, {
     getMyIdentity: async () => ({ id: me, displayName: 'Example User' }),
+    getGitRepositories: async () => [],
+    getPullRequests: async () => [],
     queryEverAssigned: async () => [],
     queryCreatedByMe: async () => [],
     queryChangedByMe: async () => [],

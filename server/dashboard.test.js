@@ -288,6 +288,7 @@ test('Discovery Room uses local room-specific requests, navigation, and filter s
 });
 
 test('Inspection Room uses pull-request scoped requests and separate preferences', async () => {
+  assert.match(dashboardHtml, /<option value="">Open items<\/option>/);
   const requests = [];
   const page = dashboard(async (url) => {
     requests.push(url);
@@ -312,11 +313,12 @@ test('Inspection Room uses pull-request scoped requests and separate preferences
   assert.equal(page.evaluate('SAVED_VIEWS_KEY'), 'mission-hall.saved-inspection-views');
   assert.equal(page.evaluate('COLUMNS_STORAGE_KEY'), 'mission-hall.inspection-columns');
   assert.equal(page.evaluate('itemHref(42)'), '/item.html?id=42&room=inspection');
+  assert.equal(page.evaluate('currentRoomName'), 'Inspection Room');
   assert.ok(requests.includes('/api/summary?room=inspection'));
   assert.ok(requests.includes('/api/filters?room=inspection'));
   assert.ok(requests.includes('/api/items?room=inspection'));
   assert.equal(page.elements.get('#results-body').children[0].children[0].textContent,
-    'No tracked GitHub pull requests match these filters.');
+    'No tracked pull requests match these filters.');
 });
 
 test('Discovery Room renders item links without hide actions and loads further results', async () => {

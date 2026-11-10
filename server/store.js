@@ -5,7 +5,10 @@ const fs = require('fs');
 const Database = require('better-sqlite3');
 const config = require('./config');
 
-const INSPECTION_FILTER = "w.provider = 'github' AND w.type = 'Pull Request'";
+const INSPECTION_FILTER = `(
+  (w.provider = 'github' AND w.type = 'Pull Request')
+  OR (w.provider = 'azure-devops' AND w.type = 'Pull Request' AND w.external_id LIKE 'pr:%')
+)`;
 
 function createStore(filename, legacyScope = '') {
   fs.mkdirSync(path.dirname(filename), { recursive: true });
@@ -203,6 +206,10 @@ function createStore(filename, legacyScope = '') {
   function saveTouch(workItemId, touchType, touchedAt) {
     upsertTouch.run(workItemId, touchType, touchedAt || null);
   }
+
+  function clearTouches(workItemId) {
+    db.prepare('DELETE FROM touches WHERE work_item_id = ?').run(workItemId);
+  }
   
   const TOUCH_JOIN = 'JOIN touches t ON t.work_item_id = w.id';
   const REQUIRED_ITEM = `(EXISTS (
@@ -282,8 +289,9 @@ function createStore(filename, legacyScope = '') {
     if (filters.search) {
       const term = filters.search.trim();
       if (/^\d+$/.test(term)) {
-        where.push('w.external_id = @searchId');
+        where.push("(w.external_id = @searchId OR (w.provider = 'azure-devops' AND w.type = 'Pull Request' AND w.external_id LIKE @searchPullRequestId))");
         params.searchId = String(BigInt(term));
+        params.searchPullRequestId = `pr:%:${params.searchId}`;
       } else {
         where.push(`(w.title LIKE @search OR w.tags LIKE @search OR w.project LIKE @search OR w.state LIKE @search)`);
         params.search = `%${term}%`;
@@ -331,7 +339,7 @@ function createStore(filename, legacyScope = '') {
     const rows = db.prepare(`
       SELECT DISTINCT w.*, ${HIDDEN_ITEM} AS is_hidden, ${REQUIRED_ITEM} AS visibility_required FROM work_items w ${join}
       WHERE ${where}
-      ORDER BY w.changed_date DESC, w.id DESC
+      ORDER BY COALESCE(w.changed_date, w.created_date) DESC, w.id DESC
       LIMIT ${limit} OFFSET ${offset}
     `).all(params);
     const total = db.prepare(`
@@ -512,6 +520,7 @@ function createStore(filename, legacyScope = '') {
   return {
     saveItem,
     saveTouch,
+    clearTouches,
     getSyncState,
     setSyncState,
     queryItems,

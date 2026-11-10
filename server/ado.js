@@ -130,6 +130,52 @@ async function queryChangedSince(isoDate) {
   );
 }
 
+async function getGitRepositories() {
+  const projectScopes = config.projects.length > 0 ? config.projects : [null];
+  const repositories = await Promise.all(projectScopes.map(async (project) => {
+    const scope = project ? `${encodeURIComponent(project)}/` : '';
+    const data = await adoFetch(`${scope}_apis/git/repositories?api-version=${API_VERSION}`);
+    return data.value || [];
+  }));
+  return [...new Map(repositories.flat().filter((repository) => repository.id).map((repository) =>
+    [repository.id.toLowerCase(), repository])).values()];
+}
+
+async function getPullRequests(repositoryId, identityId, role) {
+  if (!['creatorId', 'reviewerId'].includes(role)) throw new Error('Unsupported pull request search role.');
+  const pageSize = 1000;
+  const results = [];
+  for (let skip = 0; ; skip += pageSize) {
+    const params = new URLSearchParams({
+      'searchCriteria.status': 'all',
+      [`searchCriteria.${role}`]: identityId,
+      '$top': String(pageSize),
+      '$skip': String(skip),
+      'api-version': API_VERSION,
+    });
+    const data = await adoFetch(
+      `_apis/git/repositories/${encodeURIComponent(repositoryId)}/pullrequests?${params}`
+    );
+    const page = data.value || [];
+    results.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return results;
+}
+
+async function getPullRequest(repositoryId, pullRequestId) {
+  return adoFetch(
+    `_apis/git/repositories/${encodeURIComponent(repositoryId)}/pullRequests/${encodeURIComponent(pullRequestId)}?api-version=${API_VERSION}`
+  );
+}
+
+async function getPullRequestThreads(repositoryId, pullRequestId) {
+  const data = await adoFetch(
+    `_apis/git/repositories/${encodeURIComponent(repositoryId)}/pullRequests/${encodeURIComponent(pullRequestId)}/threads?api-version=${API_VERSION}`
+  );
+  return data.value || [];
+}
+
 const FIELDS = [
   'System.Id',
   'System.Title',
@@ -220,6 +266,10 @@ module.exports = {
   queryCreatedByMe,
   queryChangedByMe,
   queryChangedSince,
+  getGitRepositories,
+  getPullRequests,
+  getPullRequest,
+  getPullRequestThreads,
   getWorkItems,
   getUpdates,
   getRelations,

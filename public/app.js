@@ -3,6 +3,7 @@
 const $ = (sel) => document.querySelector(sel);
 const isDiscovery = new URLSearchParams(location.search).get('room') === 'discovery';
 const isInspection = new URLSearchParams(location.search).get('room') === 'inspection';
+const currentRoomName = isDiscovery ? 'Discovery Room' : isInspection ? 'Inspection Room' : 'Briefing Room';
 const COLUMN_DEFS = [
   { id: 'id', label: 'ID', required: true },
   { id: 'title', label: 'Title', required: true },
@@ -363,7 +364,7 @@ async function loadItems(append = false) {
     cell.colSpan = columnCount();
     cell.textContent = isDiscovery
       ? 'No recent, open items without your involvement match these filters. Clear filters or change the discovery window in Settings. Discovery uses only items already stored on this computer.'
-      : isInspection ? 'No tracked GitHub pull requests match these filters.'
+      : isInspection ? 'No tracked pull requests match these filters.'
       : data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
     row.appendChild(cell);
     tbody.appendChild(row);
@@ -411,7 +412,8 @@ async function loadItems(append = false) {
           source.target = '_blank';
           source.rel = 'noopener noreferrer';
           source.title = `Open in ${item.provider_label} (new tab)`;
-          source.setAttribute('aria-label', `Open work item ${item.external_id} in ${item.provider_label} (new tab)`);
+          const itemLabel = item.type === 'Pull Request' ? 'pull request' : 'work item';
+          source.setAttribute('aria-label', `Open ${itemLabel} ${item.external_id} in ${item.provider_label} (new tab)`);
           const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           icon.setAttribute('viewBox', '0 0 20 20');
           icon.setAttribute('fill', 'none');
@@ -482,11 +484,12 @@ async function loadItems(append = false) {
     visibilityButton.type = 'button';
     const restoring = Boolean(item.is_hidden);
     const protectedItem = !restoring && Boolean(item.visibility_required);
+    const itemLabel = item.type === 'Pull Request' ? 'pull request' : 'work item';
     const explanation = protectedItem
       ? 'Keep visible: assigned to you or the latest comment @mentions you.'
-      : restoring ? 'Restore to Briefing Room' : 'Hide from Briefing Room';
+      : restoring ? `Restore to ${currentRoomName}` : `Hide from ${currentRoomName}`;
     visibilityButton.title = explanation;
-    visibilityButton.setAttribute('aria-label', `${restoring ? 'Restore' : 'Hide'} work item ${item.external_id}${protectedItem ? `. ${explanation}` : ''}`);
+    visibilityButton.setAttribute('aria-label', `${restoring ? 'Restore' : 'Hide'} ${itemLabel} ${item.external_id}${protectedItem ? `. ${explanation}` : ''}`);
     visibilityButton.setAttribute('aria-disabled', String(protectedItem));
     if (restoring) {
       visibilityButton.textContent = 'Restore';
@@ -541,7 +544,10 @@ async function changeVisibility(item, hidden, button) {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Could not change item visibility.');
     status.classList.remove('inline-error');
-    status.textContent = hidden ? `Work item ${item.external_id} hidden.` : `Work item ${item.external_id} restored.`;
+    const itemLabel = item.type === 'Pull Request' ? 'Pull request' : 'Work item';
+    status.textContent = hidden
+      ? `${itemLabel} ${item.external_id} hidden from ${currentRoomName}.`
+      : `${itemLabel} ${item.external_id} restored to ${currentRoomName}.`;
     if (hidden) {
       const undo = document.createElement('button');
       undo.type = 'button';
@@ -765,7 +771,7 @@ async function init() {
     $('#nav-briefing').removeAttribute('aria-current');
     $('#nav-inspection').classList.add('is-active');
     $('#nav-inspection').setAttribute('aria-current', 'page');
-    $('#page-intro').textContent = 'GitHub pull requests you have touched, kept separate from your other work.';
+    $('#page-intro').textContent = 'Tracked GitHub pull requests and Azure DevOps pull requests you authored or were asked to review.';
   }
   loadSavedViews();
   renderSavedViews();

@@ -292,6 +292,38 @@ test('history uses the external ID and refuses a different source scope', async 
   await assert.rejects(provider.getHistory({ external_id: '109642', source_scope: 'https://dev.azure.com/other' }), /different.*organization/);
 });
 
+test('Azure DevOps pull request history loads safe text comments from its repository threads', async (t) => {
+  const oldScope = config.orgUrl;
+  const oldPat = config.pat;
+  const oldThreads = ado.getPullRequestThreads;
+  t.after(() => {
+    config.orgUrl = oldScope;
+    config.pat = oldPat;
+    ado.getPullRequestThreads = oldThreads;
+  });
+  config.orgUrl = 'https://dev.azure.com/example';
+  config.pat = 'test-token';
+  let requested;
+  ado.getPullRequestThreads = async (repositoryId, pullRequestId) => {
+    requested = { repositoryId, pullRequestId };
+    return [{ id: 4, comments: [
+      { id: 7, commentType: 'text', content: '**Looks good**', author: { displayName: 'Reviewer' }, publishedDate: '2026-10-10T00:00:00Z' },
+      { id: 8, commentType: 'system', content: 'System message' },
+    ] }];
+  };
+  const history = await getProvider('azure-devops').getHistory({
+    external_id: 'pr:11111111-1111-1111-1111-111111111111:42',
+    source_scope: config.orgUrl,
+  });
+  assert.deepEqual(requested, {
+    repositoryId: '11111111-1111-1111-1111-111111111111',
+    pullRequestId: '42',
+  });
+  assert.equal(history.length, 1);
+  assert.equal(history[0].comment, '<p><strong>Looks good</strong></p>');
+  assert.equal(history[0].by, 'Reviewer');
+});
+
 test('related links use the provider external ID and reject a different organization', async (t) => {
   const oldScope = config.orgUrl;
   const oldPat = config.pat;

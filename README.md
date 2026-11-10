@@ -1,8 +1,7 @@
 # War Room
 
-A lightweight, local-only web app that tracks Azure DevOps work items and GitHub
-issues/pull requests you have touched: currently assigned, previously assigned,
-created, edited, commented, or mentioned in a comment. Connect one or both sources.
+A lightweight, local-only web app that tracks Azure DevOps work items and pull
+requests, plus GitHub issues and pull requests. Connect one or both sources.
 
 ![War Room developer command center](public/war-room-readme.png)
 
@@ -39,7 +38,7 @@ Keep this project folder in place. If you move it, remove the old shortcut and r
 3. Open the **setup page** (linked on the dashboard, or http://localhost:4073/setup.html)
    and connect your sources — either or both:
    - **Azure DevOps**: organization URL (e.g. `https://dev.azure.com/myorg`) and a
-     Personal Access Token with **Work Items (Read)** scope.
+     Personal Access Token with **Work Items (Read)**. Add **Code (Read)** to sync pull requests.
    - **GitHub**: a personal access token (classic with `repo` scope, or fine-grained
      with **Issues** and **Pull requests** read access). Optionally limit sync to
      specific `owner/repo` repositories or point at a GitHub Enterprise host.
@@ -86,12 +85,15 @@ Restart the dashboard after editing the file manually.
   Discovery is most useful for Azure DevOps, which also stores recently changed items beyond your own work.
   GitHub sync searches for items involving you, so its Discovery Room results may be empty.
 
-- Open **Inspection Room** to see tracked GitHub pull requests without other work items.
-  Pull requests no longer appear in Briefing Room. Inspection Room keeps its filters,
-  saved views, and column layout separate.
+- Open **Inspection Room** to see tracked GitHub pull requests and Azure DevOps
+  pull requests that you created or were asked to review. Azure DevOps pull requests
+  follow the configured project scope. Pull requests do not appear in Briefing Room.
+  Choose **Visibility: Closed items** to see completed or abandoned pull requests.
+  Inspection Room keeps its filters, saved views, and column layout separate.
 
-- Click **Sync** to incrementally fetch new/changed items. The first sync is the
-  heaviest; later syncs only fetch what changed since the watermark.
+- Click **Sync** to fetch new work and refresh pull requests. The first
+  work-item sync is the heaviest; later work-item syncs fetch only items changed
+  since the previous sync.
   If sync reports an issue, the dashboard shows the error details.
   The server also logs them to `data\dashboard-error.log` when started with the Windows launcher.
 - The **Focus** filter includes two built-in choices that filter the work list:
@@ -120,8 +122,7 @@ Restart the dashboard after editing the file manually.
   Azure DevOps uses the custom **Priority Level** field when available, or its standard numeric **Priority** otherwise.
   Sync once after upgrading to fetch priorities for previously tracked items. Missing priorities display as a dash.
 - On desktop, the navy table header stays visible as you scroll through the work-item list.
-- Open an item to see exactly why it's tracked (assigned / created / edited /
-  commented / mentioned) and jump to it in Azure DevOps.
+- Open an item to see why it is tracked and jump to it in its source.
 - Use the external-link icon beside a work-item ID to open Azure DevOps in a new tab.
   The ID and title still open War Room details. Your list filters stay unchanged.
 - Choose the eye-off **Hide** icon at the right edge of a row to remove an unrelated item from Briefing Room.
@@ -172,17 +173,23 @@ Save that connection's settings to apply the interval without restarting.
 
 Auto-sync runs while the local server is running, even when your browser is closed.
 The first run starts after the interval. It skips a source if that source is already syncing.
-Refresh **Briefing Room** to see newly synced items. Errors appear in the server terminal
+Refresh the dashboard to see newly synced items. Errors appear in the server terminal
 with an `auto-sync` prefix, and the next scheduled run tries again.
+
+Azure DevOps pull requests are discovered in configured projects when you created
+them or Azure DevOps lists you as a reviewer. Active pull requests appear in the
+open list. Completed and abandoned pull requests appear under **Closed items**.
+Review comments and the full description appear in the item details.
+Requests no longer associated with you leave the room after sync.
 
 GitHub issues and pull requests are discovered with the search API (`assignee:@me`,
 `author:@me`, `involves:@me` since the last watermark).
 Each search runs separately for `is:issue` and `is:pull-request`, as GitHub requires.
-Issues appear in Briefing Room; pull requests appear in Inspection Room. An item is unique by provider,
-source scope, and external ID. For Azure DevOps, the scope is the organization URL;
-for GitHub it is the host plus repository (`github.com/owner/repo`), so issue numbers
-never collide across repositories. Sync checkpoints and profile names are kept
-separate for each provider and scope.
+Issues appear in Briefing Room; pull requests appear in Inspection Room. An item is
+unique by provider, source scope, and external ID. Azure DevOps pull requests also
+include their repository ID so their numbers cannot collide with work items or other
+repositories. For GitHub, the scope is the host plus repository (`github.com/owner/repo`).
+Sync checkpoints and profile names are kept separate for each provider and scope.
 
 GitHub notes:
 

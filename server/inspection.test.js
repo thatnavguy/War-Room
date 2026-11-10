@@ -7,7 +7,7 @@ const path = require('node:path');
 const { test } = require('node:test');
 const { createStore } = require('./store');
 
-test('Inspection Room includes only touched GitHub pull requests', (t) => {
+test('Inspection Room includes tracked GitHub and Azure DevOps pull requests only', (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'war-room-inspection-'));
   const store = createStore(path.join(directory, 'items.db'));
   t.after(() => {
@@ -29,24 +29,34 @@ test('Inspection Room includes only touched GitHub pull requests', (t) => {
   save('closed-pr', { is_closed: true, project: 'Closed pull requests' });
   save('untouched-pr', {}, false);
   save('github-issue', { type: 'Issue', project: 'GitHub issues' });
-  save('ado-pull-request', { provider: 'azure-devops', project: 'Azure DevOps' });
+  save('pr:11111111-1111-1111-1111-111111111111:42', {
+    provider: 'azure-devops', project: 'Azure DevOps',
+  });
+  save('pr:11111111-1111-1111-1111-111111111111:43', {
+    provider: 'azure-devops', project: 'Azure DevOps', state: 'Completed', is_closed: true,
+  });
+  save('ado-custom-pull-request', {
+    provider: 'azure-devops', project: 'Azure work items',
+  });
 
-  assert.deepEqual(store.queryItems({ inspection: true }).items.map((item) => item.external_id), ['open-pr']);
-  assert.deepEqual(store.queryItems({ inspection: true, closedOnly: true }).items.map((item) => item.external_id), ['closed-pr']);
+  const inspectionIds = store.queryItems({ inspection: true }).items.map((item) => item.external_id);
+  assert.deepEqual(new Set(inspectionIds), new Set(['open-pr', 'pr:11111111-1111-1111-1111-111111111111:42']));
+  assert.deepEqual(new Set(store.queryItems({ inspection: true, closedOnly: true }).items.map((item) => item.external_id)),
+    new Set(['closed-pr', 'pr:11111111-1111-1111-1111-111111111111:43']));
   const briefingIds = store.queryItems({}).items.map((item) => item.external_id);
   assert.ok(!briefingIds.includes('open-pr'));
-  assert.ok(briefingIds.includes('ado-pull-request'));
+  assert.ok(!briefingIds.includes('pr:11111111-1111-1111-1111-111111111111:42'));
+  assert.ok(briefingIds.includes('ado-custom-pull-request'));
   const filters = store.getFilterValues('inspection');
-  assert.deepEqual(filters.projects, ['Closed pull requests', 'Pull requests']);
+  assert.deepEqual(filters.projects, ['Azure DevOps', 'Closed pull requests', 'Pull requests']);
   assert.deepEqual(filters.types, ['Pull Request']);
-  assert.deepEqual(filters.providers, ['github']);
+  assert.deepEqual(filters.providers, ['azure-devops', 'github']);
   assert.ok(!store.getFilterValues().projects.includes('Pull requests'));
 
   const summary = store.getSummary(30, true);
-  assert.equal(summary.open, 1);
-  assert.equal(summary.totalTracked, 2);
-  assert.deepEqual(summary.byType, [{ key: 'Pull Request', n: 1 }]);
-  assert.equal(store.getSummary(30).open, 2);
+  assert.equal(summary.open, 2);
+  assert.equal(summary.totalTracked, 4);
+  assert.deepEqual(summary.byType, [{ key: 'Pull Request', n: 2 }]);
 });
 
 test('Inspection Room API scopes item results and filter values to pull requests', (t) => {
@@ -62,8 +72,22 @@ test('Inspection Room API scopes item results and filter values to pull requests
     external_id: 'issue', title: 'Issue', type: 'Issue',
     state: 'Open', project: 'Repository', is_closed: false, changed_date: new Date().toISOString(),
   });
+  const adoPullRequest = store.saveItem({
+    provider: 'azure-devops', source_scope: 'https://dev.azure.com/example',
+    external_id: 'pr:11111111-1111-1111-1111-111111111111:42',
+    title: 'Azure pull request', type: 'Pull Request', state: 'Active',
+    project: 'Project', is_closed: false, changed_date: new Date().toISOString(),
+  });
+  const completedPullRequest = store.saveItem({
+    provider: 'azure-devops', source_scope: 'https://dev.azure.com/example',
+    external_id: 'pr:11111111-1111-1111-1111-111111111111:43',
+    title: 'Completed Azure pull request', type: 'Pull Request', state: 'Completed',
+    project: 'Project', is_closed: true, changed_date: new Date().toISOString(),
+  });
   store.saveTouch(pr, 'commented');
   store.saveTouch(issue, 'commented');
+  store.saveTouch(adoPullRequest, 'assigned');
+  store.saveTouch(completedPullRequest, 'created');
 
   const dbPath = require.resolve('./db');
   const apiPath = require.resolve('./api');
@@ -87,6 +111,9 @@ test('Inspection Room API scopes item results and filter values to pull requests
     route.route.stack[0].handle({ query }, res);
     return res.body;
   };
-  assert.deepEqual(request('/items', { room: 'inspection' }).items.map((item) => item.external_id), ['pr']);
+  assert.deepEqual(new Set(request('/items', { room: 'inspection' }).items.map((item) => item.external_id)), new Set(['pr', '42']));
+  assert.deepEqual(request('/items', { room: 'inspection', search: '42' }).items.map((item) => item.external_id), ['42']);
+  assert.deepEqual(request('/items', { room: 'inspection', hidden: 'closed' }).items.map((item) => item.external_id), ['43']);
+  assert.deepEqual(request('/items', { hidden: 'closed' }).items, []);
   assert.deepEqual(request('/filters', { room: 'inspection' }).types, ['Pull Request']);
 });

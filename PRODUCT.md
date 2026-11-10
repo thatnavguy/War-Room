@@ -29,21 +29,20 @@ The dashboard should surface work that needs attention before the wider workload
 - The app makes read-only calls to the user's Azure DevOps organization and GitHub host.
 - The app supports organization URL and Personal Access Token setup, optional project scoping, configurable sync lookback and stale-item thresholds, and local SQLite storage.
 - The dashboard supports search, project/priority/label filters, saved views, and an assigned-to-me filter. Work-item type remains visible; state remains visible and searchable. Neither is a filter.
-- Inspection Room contains only tracked GitHub pull requests. These items do not appear in Briefing Room, and Inspection Room keeps its filters, saved views, and columns separate.
+- Inspection Room contains tracked GitHub pull requests and Azure DevOps pull requests the user created or was asked to review. Completed and abandoned pull requests appear under Closed items. Azure DevOps pull requests follow configured project scope. Pull requests do not appear in Briefing Room. Inspection Room keeps its filters, saved views, and columns separate.
 - Preset views filter the work list to attention-worthy work: Daily digest (due today, overdue, or changed today) and Needs attention (stale open work currently assigned to the user). The stale summary count opens the Needs attention preset.
 - The work list shows source due dates instead of iteration. Today and overdue dates have distinct colors and text labels.
 - Users can hide unrelated items locally and restore them from Hidden items.
   Current assignment or an explicit mention in the latest comment overrides hiding after sync.
 - Item details include why the item is tracked, its fields, description, acceptance criteria, repro steps, attachments, comments, and revision history when available.
-- The current implementation is Azure DevOps-only. GitHub support is a future goal; its behavior and scope are undecided.
 - Preserve current functionality and data behavior during the visual redesign.
 
 ## Brand Commitments
 
 The product name is War Room.
 
-Azure DevOps is currently the only implemented work source. The app separates provider adapters,
-local item IDs, source IDs, and per-source sync state to prepare for GitHub without enabling it yet.
+The app supports Azure DevOps and GitHub. It keeps provider adapters, local item IDs,
+source IDs, and sync state separate for each source.
 
 ## Evidence on Hand
 

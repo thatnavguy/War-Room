@@ -3,6 +3,7 @@
 const $ = (sel) => document.querySelector(sel);
 
 let providerLabel = 'the source';
+let itemLabel = 'work item';
 
 const TOUCH_LABELS = {
   assigned: 'Assigned to me (now or previously)',
@@ -95,11 +96,12 @@ async function load() {
   }
   const item = await res.json();
   providerLabel = item.provider_label || providerLabel;
+  itemLabel = item.type === 'Pull Request' ? 'pull request' : 'work item';
 
   document.title = `${item.external_id} — War Room`;
   $('#item-title').textContent = `${item.type} ${item.external_id}: ${item.title}`;
   $('#item-provider').textContent = item.provider_label;
-  $('#item-source-caption').textContent = `${item.provider_label} work item`;
+  $('#item-source-caption').textContent = `${item.provider_label} ${item.type === 'Pull Request' ? 'pull request' : 'work item'}`;
   if (item.url) {
     $('#source-link').href = item.url;
     $('#source-link').textContent = `Open in ${item.provider_label} ↗`;
@@ -197,7 +199,7 @@ async function loadAttachments(id) {
     list.replaceChildren();
     status.textContent = data.attachments.length
       ? `${data.attachments.length} attachment${data.attachments.length === 1 ? '' : 's'}. File links open in ${providerLabel}.`
-      : 'No attachments on this work item.';
+      : `No attachments on this ${itemLabel}.`;
     for (const attachment of data.attachments) {
       const entry = document.createElement('li');
       const info = document.createElement('div');
@@ -222,7 +224,7 @@ async function loadAttachments(id) {
       if (!attachment.url) {
         const warning = document.createElement('p');
         warning.className = 'image-error';
-        warning.textContent = 'This attachment has an unsupported source URL. Open the work item in Azure DevOps to view it.';
+        warning.textContent = `This attachment has an unsupported source URL. Open the ${itemLabel} in Azure DevOps to view it.`;
         entry.appendChild(warning);
       } else if (attachment.preview_url) {
         const image = document.createElement('img');
@@ -254,7 +256,7 @@ async function loadRelatedLinks(id) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load related links');
     target.replaceChildren();
-    status.textContent = data.links.length ? `${data.links.length} related links` : 'No related links on this work item.';
+    status.textContent = data.links.length ? `${data.links.length} related links` : `No related links on this ${itemLabel}.`;
     const groups = new Map();
     for (const link of data.links) {
       if (!groups.has(link.type)) groups.set(link.type, []);
@@ -399,7 +401,7 @@ function filterHistory() {
   $('#older-history').hidden = visibleOlder === 0;
   $('#older-history-summary').textContent = `Show older ${commentsOnly ? 'comments' : 'activity'} (${visibleOlder})`;
   $('#history-status').textContent = visible === 0
-    ? (commentsOnly ? 'No comments on this work item.' : 'No revisions.')
+    ? (commentsOnly ? `No comments on this ${itemLabel}.` : 'No revisions.')
     : `${visible} ${commentsOnly ? (visible === 1 ? 'comment' : 'comments') : (visible === 1 ? 'revision' : 'revisions')}`;
 }
 
@@ -510,6 +512,6 @@ function setupNotes(id) {
 setupNotes(new URLSearchParams(location.search).get('id'));
 
 load().catch((err) => {
-  $('#history-status').textContent = `Could not load this work item: ${err.message}`;
-  $('#links-status').textContent = `Could not load this work item: ${err.message}`;
+  $('#history-status').textContent = `Could not load this ${itemLabel}: ${err.message}`;
+  $('#links-status').textContent = `Could not load this ${itemLabel}: ${err.message}`;
 });
