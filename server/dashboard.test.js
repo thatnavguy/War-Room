@@ -8,6 +8,7 @@ const { test } = require('node:test');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8')
   .replace('init().catch(showLoadError);', '');
+const dashboardHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
 
 function dashboard(fetch, search = '') {
   function element() {
@@ -117,18 +118,35 @@ for (const errors of [['GitHub: request failed 422'], ['GitHub: request failed 4
   });
 }
 
-test('old session filters and saved views no longer apply iteration or date constraints', async () => {
+test('work-list type and state stay visible while their filters are absent', async () => {
+  assert.doesNotMatch(dashboardHtml, /id="f-state"/);
+  assert.doesNotMatch(dashboardHtml, /id="f-type"/);
+  assert.match(dashboardHtml, /data-column="state">State<\/th>/);
+  assert.match(dashboardHtml, /data-column="type">Type<\/th>/);
   const requests = [];
   const page = dashboard(async (url) => {
     requests.push(url);
     return { ok: true, json: async () => ({ items: [], total: 0 }) };
   });
-  page.evaluate(`sessionStorage.setItem(FILTER_STORAGE_KEY, 'project=Example&iteration=Sprint&from=2026-01-01&to=2026-01-31'); restoreFilters();`);
+  page.evaluate(`applyFilterValues({ state: 'Active', type: 'Bug' }); loadItems();`);
+  await page.flush();
+  assert.equal(requests[0], '/api/items?');
+  assert.equal(page.elements.has('#f-state'), false);
+  assert.equal(page.elements.has('#f-type'), false);
+});
+
+test('old session filters and saved views no longer apply type, state, iteration, or date constraints', async () => {
+  const requests = [];
+  const page = dashboard(async (url) => {
+    requests.push(url);
+    return { ok: true, json: async () => ({ items: [], total: 0 }) };
+  });
+  page.evaluate(`sessionStorage.setItem(FILTER_STORAGE_KEY, 'project=Example&type=Bug&state=Active&iteration=Sprint&from=2026-01-01&to=2026-01-31'); restoreFilters();`);
   assert.equal(page.elements.get('#f-project').value, 'Example');
   await page.evaluate('loadItems()');
   assert.equal(requests[0], '/api/items?project=Example');
-  assert.doesNotMatch(page.evaluate('sessionStorage.getItem(FILTER_STORAGE_KEY)'), /iteration=|from=|to=/);
-  page.evaluate(`applyFilterValues({ project: 'Another', iteration: 'Sprint', from: '2026-01-01', to: '2026-01-31' });`);
+  assert.doesNotMatch(page.evaluate('sessionStorage.getItem(FILTER_STORAGE_KEY)'), /type=|state=|iteration=|from=|to=/);
+  page.evaluate(`applyFilterValues({ project: 'Another', type: 'Bug', state: 'Active', iteration: 'Sprint', from: '2026-01-01', to: '2026-01-31' });`);
   await page.evaluate('loadItems()');
   assert.equal(requests[1], '/api/items?project=Another');
 });

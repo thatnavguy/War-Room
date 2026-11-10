@@ -205,7 +205,7 @@ Deep navy anchors the shell and table headers; cool slate neutrals support the w
 
 The wide layout uses a fixed 224px navigation rail and a centered content region. At medium desktop widths the rail narrows to 196px. At 960px and below, navigation becomes a horizontal top strip, the dashboard table becomes labeled work-item rows, and filters wrap to available space. At 420px and below, horizontal padding and navigation gaps tighten further.
 
-The dashboard order is heading and sync action, compact workload counts, then search, filters, and all touched work. Attention-worthy work is reached through preset views rather than a separate board: Daily digest and Needs attention sit at the top of the saved-view control and filter the work list in place. The stale workload count acts as a shortcut to the Needs attention preset. Optional breakdowns remain collapsed.
+The dashboard order is heading and sync action, compact workload counts, then search, filters, and all touched work. Keep the primary filter row focused on work context; type remains visible and state remains visible and searchable in the list, but neither is a filter. Attention-worthy work is reached through preset views rather than a separate board: Daily digest and Needs attention sit at the top of the saved-view control and filter the work list in place. The stale workload count acts as a shortcut to the Needs attention preset. Optional breakdowns remain collapsed.
 
 Work-item details use the full workspace width for field values, descriptions, acceptance criteria, repro steps, and revision history. Rich text wraps within that space without a separate narrow-column limit.
 

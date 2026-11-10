@@ -28,7 +28,7 @@ The dashboard should surface work that needs attention before the wider workload
 
 - The current integration makes read-only calls to the user's Azure DevOps organization.
 - The app supports organization URL and Personal Access Token setup, optional project scoping, configurable sync lookback and stale-item thresholds, and local SQLite storage.
-- The dashboard supports search, project/type/state/priority/label filters, saved views, and an assigned-to-me filter.
+- The dashboard supports search, project/priority/label filters, saved views, and an assigned-to-me filter. Work-item type remains visible; state remains visible and searchable. Neither is a filter.
 - Preset views filter the work list to attention-worthy work: Daily digest (due today, overdue, or changed today) and Needs attention (stale open work currently assigned to the user). The stale summary count opens the Needs attention preset.
 - The work list shows source due dates instead of iteration. Today and overdue dates have distinct colors and text labels.
 - Users can hide unrelated items locally and restore them from Hidden items.

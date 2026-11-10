@@ -136,8 +136,6 @@ const filterEls = {
   priority: $('#f-priority'),
   label: $('#f-label'),
   project: $('#f-project'),
-  type: $('#f-type'),
-  state: $('#f-state'),
 };
 const mineCheckbox = $('#f-mine');
 if (isDiscovery) {
@@ -311,8 +309,6 @@ async function loadFilters() {
   const f = await res.json();
   if (!res.ok) throw new Error(f.error || 'Could not load work filters.');
   fill(filterEls.project, f.projects, 'All projects');
-  fill(filterEls.type, f.types, 'All types');
-  fill(filterEls.state, f.states, 'All states');
   fill(filterEls.priority, f.priorities, 'All priority levels');
   fill(filterEls.label, f.labels, 'All labels');
   filterEls.provider.replaceChildren(new Option('All sources', ''));

@@ -98,8 +98,9 @@ Restart the dashboard after editing the file manually.
   Presets cannot be deleted, and your own views cannot reuse a preset's name.
 - Search by ID, title, tag, project, or state — results filter as you type.
   Press `/` to focus search, Esc to clear.
-- Filter by project, type, state, priority level, label, and assignment to you.
-  Iteration and From/To filters are no longer shown. Older saved views ignore those removed filters.
+- Filter by project, priority level, label, and assignment to you.
+  Type remains visible; State remains visible and searchable. Neither is a filter.
+  Older saved views ignore removed Type, State, Iteration, and From/To filters.
 - The work list shows **Due date** instead of Iteration.
   Dates due today are amber. Overdue dates are red. Both include a text label.
   Future dates use normal text. Items without a due date show a dash.
