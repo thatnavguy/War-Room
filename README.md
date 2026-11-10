@@ -66,6 +66,12 @@ Restart the dashboard after editing the file manually.
 
 ## Usage
 
+- Choose **Columns** above the work list to show or hide columns.
+  Use **Up** and **Down** to change their order. ID and Title always stay visible.
+  **Reset columns** restores the original columns and order.
+  Each room remembers its own layout in this browser, including on narrow screens.
+  Column changes do not change sorting, filters, saved views, or source data.
+
 - Open **Discovery Room** to browse recent, open items already stored on this computer
   with no recorded assignment, creation, edit, comment, or mention involving you.
   It does not fetch extra items from either source.

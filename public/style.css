@@ -277,6 +277,22 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 
 .work-section { scroll-margin-top: 78px; }
 .work-heading { margin-bottom: 12px; }
+.work-list-actions { display: flex; align-items: center; gap: 16px; }
+.columns-panel { position: relative; }
+.columns-panel summary { padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); color: var(--accent); font-size: 13px; cursor: pointer; }
+.columns-options { position: absolute; right: 0; top: 100%; z-index: 4; width: min(360px, calc(100vw - 32px)); padding: 16px; border: 1px solid var(--line-strong); background: var(--surface); }
+.columns-options p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.column-options { margin: 0 0 12px; padding: 0; list-style: none; }
+.column-options li { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.column-options label { display: flex; flex: 1; align-items: center; gap: 8px; font-size: 13px; }
+.column-options input { width: 16px; height: 16px; accent-color: var(--accent); }
+.column-move { min-width: 42px; min-height: 34px; padding: 4px 7px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); color: var(--accent); font-size: 12px; }
+.column-move:hover { background: var(--surface-hover); }
+.column-move:disabled { cursor: not-allowed; }
+.columns-status { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.columns-status:empty { display: none; }
+.columns-status.status-error { color: var(--error); }
+#results [hidden] { display: none !important; }
 .saved-view-row { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin: 0 0 13px; }
 .saved-view-select { display: grid; width: min(280px, 100%); gap: 4px; color: var(--muted); font-size: 11px; }
 .saved-view-select > span { font-weight: 600; }
@@ -348,7 +364,7 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 #results td.title-cell a:hover { color: var(--accent-hover); text-decoration: underline; text-underline-offset: 3px; }
 .item-labels { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .item-label { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--state-bg); color: var(--ink); font-size: 12px; font-weight: 400; overflow-wrap: anywhere; }
-#results td:nth-child(5), #results td:nth-child(7) { color: var(--muted); }
+#results td[data-column="assigned"], #results td[data-column="due"] { color: var(--muted); }
 .due-date { display: inline-block; }
 .due-today, .due-overdue { padding: 3px 6px; border-radius: 3px; font-weight: 600; }
 .due-today { background: var(--signal-amber); color: var(--ink); }
@@ -518,15 +534,7 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
   #results tr.work-row:hover { background: transparent; }
   #results td { min-width: 0; padding: 7px 4px; border: 0; overflow-wrap: anywhere; font-size: 12px; }
   #results td::before { display: block; margin-bottom: 2px; color: var(--muted); content: attr(data-label); font-size: 10px; font-weight: 600; }
-  #results td.id-cell { grid-column: 1; grid-row: 1; }
-  #results td.title-cell { grid-column: 1 / -1; grid-row: 2; padding-top: 4px; font-size: 13px; }
-  #results td:nth-child(3) { grid-column: 1; }
-  #results td:nth-child(4) { grid-column: 2; grid-row: 3; }
-  #results td:nth-child(5) { grid-column: 1; }
-  #results td:nth-child(6) { grid-column: 2; }
-  #results td:nth-child(7) { grid-column: 1; }
-  #results td:nth-child(8) { grid-column: 2; }
-  #results td:nth-child(9) { grid-column: 2; grid-row: 1; }
+  #results td.title-cell { grid-column: 1 / -1; padding-top: 4px; font-size: 13px; }
   #results td.work-actions { grid-column: 2; justify-self: end; padding: 4px; }
   #results td.work-actions::before { display: none; }
   #results td.table-message { display: block; }
@@ -542,6 +550,11 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 }
 
 @media (max-width: 420px) {
+  .work-heading { flex-wrap: wrap; gap: 12px; }
+  .work-list-actions { width: 100%; justify-content: space-between; }
+  .columns-panel { position: static; }
+  .work-heading { position: relative; }
+  .columns-options { left: 0; right: auto; width: 100%; }
   .side-rail { gap: 5px; padding-right: 10px; padding-left: 10px; }
   .brand { gap: 6px; font-size: 12px; }
   .nav-link { padding: 0 7px; }

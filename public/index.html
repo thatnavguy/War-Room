@@ -13,7 +13,7 @@
   <aside class="side-rail">
     <a class="brand" href="/" aria-label="War Room home">
       <span class="brand-mark" aria-hidden="true">
-        <img src="/war-room-icon.png" width="30" height="30" alt="">
+        <img src="/war-room-mark.svg" width="30" height="30" alt="">
       </span>
       <span>War Room</span>
     </a>
@@ -91,8 +91,19 @@
             <h2 id="work-title">All touched work</h2>
             <span id="result-count" class="result-count" aria-live="polite"></span>
           </div>
-          <button id="clear-filters" class="text-button clear-top" type="button">Clear filters</button>
+          <div class="work-list-actions">
+            <details id="columns-panel" class="columns-panel">
+              <summary>Columns</summary>
+              <div class="columns-options">
+                <p>Choose columns and their order. ID and Title stay visible.</p>
+                <ol id="column-options" class="column-options"></ol>
+                <button id="reset-columns" class="text-button" type="button">Reset columns</button>
+              </div>
+            </details>
+            <button id="clear-filters" class="text-button clear-top" type="button">Clear filters</button>
+          </div>
         </div>
+        <p id="columns-status" class="columns-status" role="status" aria-live="polite"></p>
         <div class="saved-view-row">
           <label class="saved-view-select">
             <span>Saved view</span>
@@ -141,7 +152,7 @@
         <div class="table-wrap">
           <table id="results">
             <thead>
-              <tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Assigned to</th><th scope="col">Project</th><th scope="col">Due date</th><th scope="col">Changed</th><th scope="col">Priority level</th><th id="work-actions-heading" scope="col" class="work-actions-heading"><span class="visually-hidden">Actions</span></th></tr>
+              <tr id="results-head"><th scope="col" data-column="id">ID</th><th scope="col" data-column="title">Title</th><th scope="col" data-column="type">Type</th><th scope="col" data-column="state">State</th><th scope="col" data-column="assigned">Assigned to</th><th scope="col" data-column="project">Project</th><th scope="col" data-column="due">Due date</th><th scope="col" data-column="changed">Changed</th><th scope="col" data-column="priority">Priority level</th><th id="work-actions-heading" scope="col" class="work-actions-heading"><span class="visually-hidden">Actions</span></th></tr>
             </thead>
             <tbody id="results-body"><tr><td class="table-message" colspan="10">Loading your work…</td></tr></tbody>
           </table>

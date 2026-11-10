@@ -2,7 +2,131 @@
 
 const $ = (sel) => document.querySelector(sel);
 const isDiscovery = new URLSearchParams(location.search).get('room') === 'discovery';
-const tableColumns = isDiscovery ? 9 : 10;
+const COLUMN_DEFS = [
+  { id: 'id', label: 'ID', required: true },
+  { id: 'title', label: 'Title', required: true },
+  { id: 'type', label: 'Type' },
+  { id: 'state', label: 'State' },
+  { id: 'assigned', label: 'Assigned to' },
+  { id: 'project', label: 'Project' },
+  { id: 'due', label: 'Due date' },
+  { id: 'changed', label: 'Changed' },
+  { id: 'priority', label: 'Priority level' },
+];
+const COLUMNS_STORAGE_KEY = isDiscovery ? 'mission-hall.discovery-columns' : 'mission-hall.work-columns';
+const defaultColumns = () => COLUMN_DEFS.map(({ id }) => ({ id, visible: true }));
+let columns = defaultColumns();
+
+function columnCount() {
+  return columns.filter((column) => column.visible).length + (isDiscovery ? 0 : 1);
+}
+
+function setColumnsStatus(message, error = false) {
+  $('#columns-status').textContent = message;
+  $('#columns-status').classList.toggle('status-error', error);
+}
+
+function loadColumns() {
+  try {
+    const stored = localStorage.getItem(COLUMNS_STORAGE_KEY);
+    if (stored === null) return;
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed) || parsed.length !== COLUMN_DEFS.length ||
+      new Set(parsed.map((column) => column?.id)).size !== COLUMN_DEFS.length ||
+      parsed.some((column) => !column || typeof column.visible !== 'boolean' ||
+        !COLUMN_DEFS.some((definition) => definition.id === column.id && (!definition.required || column.visible)))) {
+      throw new Error('Invalid column layout.');
+    }
+    columns = parsed.map(({ id, visible }) => ({ id, visible }));
+  } catch {
+    setColumnsStatus('Could not read the saved columns. Showing defaults. Use Reset columns to replace the saved layout.', true);
+  }
+}
+
+function applyColumns() {
+  for (const row of [$('#results-head'), ...$('#results-body').children]) {
+    const cells = [...row.children];
+    for (const column of columns) {
+      const cell = cells.find((candidate) => candidate.dataset.column === column.id);
+      if (!cell) continue;
+      cell.hidden = !column.visible;
+      row.appendChild(cell);
+    }
+    const actions = cells.find((cell) => cell.className === 'work-actions' || cell.id === 'work-actions-heading');
+    if (actions) row.appendChild(actions);
+    const message = cells.find((cell) => cell.classList.contains('table-message'));
+    if (message) message.colSpan = columnCount();
+  }
+}
+
+function saveColumns(next, message) {
+  try {
+    localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    setColumnsStatus('Could not save columns in this browser. Check its storage settings and try again.', true);
+    renderColumnOptions();
+    return false;
+  }
+  columns = next;
+  renderColumnOptions();
+  applyColumns();
+  setColumnsStatus(message);
+  return true;
+}
+
+function renderColumnOptions(focusId, direction) {
+  const list = $('#column-options');
+  list.replaceChildren();
+  columns.forEach((column, index) => {
+    const definition = COLUMN_DEFS.find(({ id }) => id === column.id);
+    const row = document.createElement('li');
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = column.visible;
+    input.disabled = Boolean(definition.required);
+    input.addEventListener('change', () => {
+      saveColumns(columns.map((entry) => entry.id === column.id ? { ...entry, visible: input.checked } : entry),
+        `${definition.label} ${input.checked ? 'shown' : 'hidden'}.`);
+      $(`#column-options input[data-column="${column.id}"]`)?.focus({ preventScroll: true });
+    });
+    input.dataset.column = column.id;
+    const text = document.createElement('span');
+    text.textContent = definition.label + (definition.required ? ' (always visible)' : '');
+    label.append(input, text);
+    row.appendChild(label);
+    for (const [step, name] of [[-1, 'up'], [1, 'down']]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'column-move';
+      button.textContent = name === 'up' ? 'Up' : 'Down';
+      button.setAttribute('aria-label', `Move ${definition.label} ${name}`);
+      button.dataset.column = column.id;
+      button.dataset.direction = name;
+      button.disabled = index + step < 0 || index + step >= columns.length;
+      button.addEventListener('click', () => {
+        const next = columns.map((entry) => ({ ...entry }));
+        [next[index], next[index + step]] = [next[index + step], next[index]];
+        if (saveColumns(next, `${definition.label} moved ${name}.`)) renderColumnOptions(column.id, name);
+      });
+      row.appendChild(button);
+    }
+    list.appendChild(row);
+  });
+  if (focusId) {
+    const button = $(`#column-options button[data-column="${focusId}"][data-direction="${direction}"]`);
+    const opposite = direction === 'up' ? 'down' : 'up';
+    (button?.disabled ? $(`#column-options button[data-column="${focusId}"][data-direction="${opposite}"]`) : button)?.focus({ preventScroll: true });
+  }
+}
+
+$('#reset-columns').addEventListener('click', () => saveColumns(defaultColumns(), 'Default columns restored.'));
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && $('#columns-panel').open) {
+    $('#columns-panel').open = false;
+    $('#columns-panel summary').focus();
+  }
+});
 
 const searchInput = $('#search');
 const filterEls = {
@@ -241,7 +365,7 @@ async function loadItems(append = false) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.className = 'table-message';
-    cell.colSpan = tableColumns;
+    cell.colSpan = columnCount();
     cell.textContent = isDiscovery
       ? 'No recent, open items without your involvement match these filters. Clear filters or change the discovery window in Settings. Discovery uses only items already stored on this computer.'
       : data.total === 0 ? 'No work items match these filters.' : 'No items to show.';
@@ -276,6 +400,7 @@ async function loadItems(append = false) {
     cells.forEach((cell, i) => {
       const td = document.createElement('td');
       td.dataset.label = cell.label;
+      td.dataset.column = COLUMN_DEFS[i].id;
       if (cell.kind === 'id') {
         td.className = 'id-cell';
         const a = document.createElement('a');
@@ -400,6 +525,7 @@ async function loadItems(append = false) {
     });
     tbody.appendChild(tr);
   }
+  applyColumns();
 }
 
 async function changeVisibility(item, hidden, button) {
@@ -572,7 +698,7 @@ function showLoadError(err) {
   const row = document.createElement('tr');
   const cell = document.createElement('td');
   cell.className = 'table-message table-error';
-  cell.colSpan = tableColumns;
+  cell.colSpan = columnCount();
   cell.textContent = message;
   row.appendChild(cell);
   tableBody.appendChild(row);
@@ -616,6 +742,9 @@ $('#sync-btn').addEventListener('click', async () => {
 });
 
 async function init() {
+  loadColumns();
+  renderColumnOptions();
+  applyColumns();
   if (isDiscovery) {
     document.title = 'Discovery Room — War Room';
     $('#page-title').textContent = 'Discovery Room';
@@ -656,7 +785,7 @@ async function init() {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
     cell.className = 'table-message';
-    cell.colSpan = 10;
+    cell.colSpan = columnCount();
     cell.textContent = 'Connect a work source to see your work.';
     row.appendChild(cell);
     tbody.appendChild(row);

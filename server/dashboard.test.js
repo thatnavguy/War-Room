@@ -18,6 +18,7 @@ function dashboard(fetch, search = '') {
       checked: false,
       hidden: false,
       disabled: false,
+      colSpan: 1,
       textContent: '',
       label: '',
       children: [],
@@ -33,7 +34,10 @@ function dashboard(fetch, search = '') {
       focus(options) { this.focusOptions = options; },
       addEventListener(name, handler) { this.listeners[name] = handler; },
       replaceChildren(...children) { this.children = children; },
-      appendChild(child) { this.children.push(child); },
+      appendChild(child) {
+        this.children = this.children.filter((entry) => entry !== child);
+        this.children.push(child);
+      },
       append(...children) { this.children.push(...children); },
       setAttribute(name, value) { this.attributes[name] = value; },
       removeAttribute(name) { delete this.attributes[name]; },
@@ -294,4 +298,97 @@ test('a late discovery response cannot overwrite a newer set of filters', async 
   pending[0]({ ok: true, json: async () => ({ items: [], total: 100 }) });
   await first;
   assert.equal(page.elements.get('#result-count').textContent, '0 of 0 items');
+});
+
+for (const room of ['', '?room=discovery']) {
+  test(`column layout persists visibility and order independently for ${room || 'briefing'}`, async () => {
+    const page = dashboard(async () => ({
+      ok: true, json: async () => ({
+        items: [{ id: 1, external_id: '1', title: 'Example', type: 'Task', state: 'New' }], total: 1,
+      }),
+    }), room);
+    page.evaluate(`
+      for (const column of COLUMN_DEFS) {
+        const heading = document.createElement('th');
+        heading.dataset.column = column.id;
+        $('#results-head').appendChild(heading);
+      }
+      renderColumnOptions();
+    `);
+    assert.equal(page.elements.get('#column-options').children.length, 9);
+    await page.evaluate('loadItems()');
+    page.evaluate(`
+      const next = defaultColumns();
+      next.find(column => column.id === 'type').visible = false;
+      next.unshift(next.pop());
+      saveColumns(next, 'Updated');
+    `);
+    const rows = page.elements.get('#results-body').children;
+    assert.equal(rows[0].children[0].dataset.column, 'priority');
+    assert.equal(rows[0].children.find((cell) => cell.dataset.column === 'id').colSpan, 1);
+    assert.equal(rows[0].children.find((cell) => cell.dataset.column === 'type').hidden, true);
+    assert.equal(page.elements.get('#results-head').children[0].dataset.column, 'priority');
+    const key = room ? 'mission-hall.discovery-columns' : 'mission-hall.work-columns';
+    assert.equal(page.evaluate('COLUMNS_STORAGE_KEY'), key);
+    page.evaluate('columns = defaultColumns(); loadColumns();');
+    assert.equal(page.evaluate('columns[0].id'), 'priority');
+    assert.equal(page.evaluate('columns.find(column => column.id === "type").visible'), false);
+    page.elements.get('#reset-columns').listeners.click();
+    assert.equal(rows[0].children[0].dataset.column, 'id');
+    assert.equal(rows[0].children.find((cell) => cell.dataset.column === 'type').hidden, false);
+    const required = page.elements.get('#column-options').children.slice(0, 2);
+    assert.equal(required.every((row) => row.children[0].children[0].disabled), true);
+  });
+}
+
+test('invalid saved columns report an error and retain defaults', () => {
+  const page = dashboard();
+  for (const stored of ['broken', '[null]', JSON.stringify([
+    { id: 'id', visible: false }, { id: 'title', visible: true },
+  ])]) {
+    page.evaluate(`localStorage.setItem(COLUMNS_STORAGE_KEY, ${JSON.stringify(stored)}); loadColumns();`);
+    assert.equal(page.evaluate('columns.length'), 9);
+    assert.equal(page.evaluate('columns.every(column => column.visible)'), true);
+    assert.match(page.elements.get('#columns-status').textContent, /Could not read/);
+  }
+});
+
+test('failed column persistence leaves the displayed layout unchanged', () => {
+  const page = dashboard();
+  page.evaluate(`
+    localStorage.setItem = () => { throw new Error('Storage disabled'); };
+    const next = defaultColumns();
+    next[2].visible = false;
+    saveColumns(next, 'Updated');
+  `);
+  assert.equal(page.evaluate('columns[2].visible'), true);
+  assert.match(page.elements.get('#columns-status').textContent, /Could not save/);
+});
+
+test('column controls move columns and preserve required visibility', () => {
+  const page = dashboard();
+  page.evaluate('renderColumnOptions()');
+  const first = page.elements.get('#column-options').children[0];
+  assert.equal(first.children[1].disabled, true);
+  assert.equal(first.children[2].disabled, false);
+  first.children[2].listeners.click();
+  assert.equal(page.evaluate('columns[1].id'), 'id');
+  assert.equal(page.evaluate('columns[1].visible'), true);
+  assert.match(page.elements.get('#columns-status').textContent, /ID moved down/);
+});
+
+test('unconfigured connection prompt respects saved hidden columns', async () => {
+  const page = dashboard(async (url) => ({
+    ok: true,
+    json: async () => url === '/api/providers' ? { providers: [] } : { configured: false },
+  }));
+  page.evaluate(`
+    const saved = defaultColumns();
+    saved.find(column => column.id === 'type').visible = false;
+    localStorage.setItem(COLUMNS_STORAGE_KEY, JSON.stringify(saved));
+  `);
+  await page.evaluate('init()');
+  const message = page.elements.get('#results-body').children[0].children[0];
+  assert.equal(message.colSpan, 9);
+  assert.equal(message.textContent, 'Connect a work source to see your work.');
 });
