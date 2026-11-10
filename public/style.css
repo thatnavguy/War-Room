@@ -377,7 +377,7 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 /* Item detail and connection settings */
 .subpage-content { width: min(100%, 1180px); margin: 0 auto; padding: 28px 34px 42px; }
 .subpage-content.item-main { width: 100%; max-width: none; }
-.item-page { --item-topbar-height: 60px; }
+.item-page { --item-topbar-height: 60px; background: var(--surface-hover); }
 .item-page .topbar { position: sticky; height: var(--item-topbar-height); min-height: var(--item-topbar-height); z-index: 11; background: var(--surface); }
 .item-section-nav { position: sticky; top: var(--item-topbar-height); z-index: 10; display: flex; gap: 2px; overflow-x: auto; padding: 8px 12px; border-bottom: 1px solid var(--line-strong); background: var(--surface); }
 .item-section-nav[hidden], .item-section-nav a[hidden] { display: none; }
