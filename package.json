@@ -1,6 +1,6 @@
 {
   "name": "mission-hall",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local work tracker with provider adapters; Azure DevOps supported today",
   "main": "server/index.js",
   "scripts": {
