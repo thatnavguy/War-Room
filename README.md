@@ -139,7 +139,7 @@ Restart the dashboard after editing the file manually.
 - **Attachments** loads the work item's current files without another sync.
   Image files have inline previews. File links open in Azure DevOps, where you may need to sign in.
   File sizes appear when Azure DevOps supplies them. Upload or remove files in Azure DevOps.
-- Select **Comments only** beside **Comments & history** to hide field changes
+- **Comments only** is selected by default beside **Comments & history**; clear it to show field changes
   and revisions without comments. Clear it to see the full history again.
 - Use the section menu at the top of a work item to jump to **Description** or **Comments & history**.
   The menu and **Briefing Room** back link stay visible as you scroll. The menu only shows sections that are available.

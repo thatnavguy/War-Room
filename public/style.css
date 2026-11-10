@@ -449,6 +449,8 @@ button.summary-item:hover span { color: var(--accent); text-decoration: underlin
 .history { display: grid; width: 100%; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .history-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
 .item-main .section-heading { margin: 0 -20px 18px; padding: 16px 20px; background: var(--rail); color: var(--rail-ink); }
+.item-main #sec-description > .section-heading { background: var(--accent); }
+#sec-history > .history-heading { background: var(--state-ink); }
 .item-main section[id^="sec-"] > .section-heading { flex-wrap: wrap; }
 .item-main .section-heading .muted { color: var(--rail-secondary); font-size: 12px; }
 #sec-history .history-heading h2 { margin: 0; }

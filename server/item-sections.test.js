@@ -7,6 +7,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '..', 'public', 'item.js'), 'utf8');
+const itemHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'item.html'), 'utf8');
 
 function element() {
   const attributes = new Map();
@@ -93,6 +94,7 @@ test('marks the section at the sticky-menu boundary as the current location', ()
 
 test('keeps recent revisions visible and makes older activity expandable and filter-aware', async () => {
   const { context, get } = page();
+  assert.match(itemHtml, /id="comments-only"[^>]*\bchecked\b/);
   const revisions = Array.from({ length: 7 }, (_, index) => ({
     rev: 7 - index,
     date: `2026-10-${String(28 - index).padStart(2, '0')}T10:00:00Z`,
@@ -100,21 +102,23 @@ test('keeps recent revisions visible and makes older activity expandable and fil
     comment: index % 2 === 0 ? `<p>Comment ${index}</p>` : null,
     changes: [],
   }));
+  get('#comments-only').checked = true;
   context.fetch = async () => ({ ok: true, json: async () => ({ revisions }) });
 
   await vm.runInContext("loadHistory('123')", context);
-  assert.equal(get('#history-status').textContent, '7 revisions');
+  assert.equal(get('#history-status').textContent, '4 comments');
   assert.equal(get('#history-list').children.length, 5);
   assert.equal(get('#older-history-list').children.length, 2);
   assert.equal(get('#older-history').hidden, false);
-  assert.match(get('#older-history-summary').textContent, /Show older activity \(2\)/);
+  assert.match(get('#older-history-summary').textContent, /Show older comments \(1\)/);
 
-  get('#comments-only').checked = true;
+  get('#comments-only').checked = false;
   context.filterHistory();
-  assert.equal(get('#older-history-list').children[0].hidden, true);
+  assert.equal(get('#history-status').textContent, '7 revisions');
+  assert.equal(get('#older-history-list').children[0].hidden, false);
   assert.equal(get('#older-history-list').children[1].hidden, false);
   assert.equal(get('#older-history').hidden, false);
-  assert.match(get('#older-history-summary').textContent, /Show older comments \(1\)/);
+  assert.match(get('#older-history-summary').textContent, /Show older activity \(2\)/);
 });
 
 for (const section of [
