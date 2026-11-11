@@ -19,6 +19,7 @@
       <a class="nav-link" href="/"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5.5h6v5H4zm10 0h6v8h-6zM4 14.5h6V19H4zm10 2h6V19h-6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Briefing Room</span></a>
       <a class="nav-link" href="/?room=discovery"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.6"/><path d="m15.5 15.5 4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Discovery Room</span></a>
       <a class="nav-link" href="/?room=inspection"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 4.5h8l4 4V19H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 4.5V9h4M9 12h6m-6 3h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Inspection Room</span></a>
+      <a class="nav-link" href="/reading.html"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 6C9 4 5 4 3 5v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-2-1-6-1-9 1Zm0 0v14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Reading Room</span></a>
       <a class="nav-link is-active" href="/setup.html" aria-current="page"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3.8" stroke="currentColor" stroke-width="1.6"/><path d="m19.4 13.7 1.1.9-1.6 2.8-1.4-.5a7.8 7.8 0 0 1-1.6.9l-.2 1.5h-3.3l-.2-1.5a7.8 7.8 0 0 1-1.6-.9l-1.4.5-1.6-2.8 1.1-.9a7.7 7.7 0 0 1 0-1.8l-1.1-.9 1.6-2.8 1.4.5a7.8 7.8 0 0 1 1.6-.9l.2-1.5h3.3l.2 1.5a7.8 7.8 0 0 1 1.6.9l1.4-.5 1.6 2.8-1.1.9a7.7 7.7 0 0 1 0 1.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Settings</span></a>
     </nav>
     <div class="rail-account"><span class="connection-dot" aria-hidden="true"></span><span><strong>Work sources</strong><small>Connection settings</small></span></div>
@@ -33,7 +34,7 @@
         <form id="ado-form" class="setup-form">
           <label class="form-field"><span>Organization URL</span><input id="org-url" type="url" placeholder="https://dev.azure.com/myorg" autocomplete="url" required></label>
           <label class="form-field">
-            <span>Personal Access Token <small>(Work Items — Read scope)</small></span>
+            <span>Personal Access Token <small>(Work Items — Read; Code — Read for pull requests and wiki images; Wiki and Project and Team — Read for Reading Room)</small></span>
             <input id="pat" type="password" placeholder="Paste a token" autocomplete="new-password">
             <small id="pat-hint" role="status"></small>
           </label>

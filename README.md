@@ -65,6 +65,60 @@ Restart the dashboard after editing the file manually.
 
 ## Usage
 
+### Reading Room
+
+Reading Room keeps the project wikis you choose in one place. It does not list every wiki you can access.
+
+1. Open **Reading Room** and choose **Add your first wiki**.
+2. Choose a connected source, then search for a project or repository.
+3. Choose its wiki. Add a display name if you want, then select **Add to Reading Room**.
+4. Choose a page from **Pages**. On a small screen, use the **Pages** button to open the page list.
+
+Reading Room remembers the last page and reading position for each wiki in this browser.
+Page links work with browser Back and bookmarks. Use **Search pages** to search page content
+in the current wiki or **All saved wikis**. The first search can take longer while pages load.
+
+Use **Manage wikis** to rename, reorder, or remove entries. This only changes your local collection.
+It does not change the original wiki or your work-item sync settings.
+Use **Open original** to read or edit a page in Azure DevOps or GitHub.
+War Room never edits source wiki content.
+
+Azure DevOps needs **Wiki (Read)** and **Project and Team (Read)** access.
+Wiki images also need **Code (Read)**. Keep the scopes used for your work items.
+GitHub needs a token that supports reading the selected wiki's Git repository.
+For private wikis, use a classic token with **repo** scope and authorize organization single sign-on when required.
+Fine-grained tokens may not support wiki Git access. A wiki must have at least one
+page created in GitHub before Reading Room can connect to it.
+If access fails, check **Settings** and the source permissions. Saved entries stay in your collection.
+
+Pages and images load from the source. If the source is temporarily unavailable, Reading Room can show
+cached content with a warning and its fetch time. Access-denied and missing-content errors do not use that fallback.
+GitHub reads can reuse a snapshot for up to one minute; **Refresh** and **Refresh page** request a new snapshot.
+Search checks up to 500 pages and shows a warning if it reaches that limit.
+Only PNG, JPEG, GIF, and WebP images stored in the wiki are displayed. External images and active formats are blocked.
+
+Mermaid diagrams render inside Reading Room. GitHub's fenced `mermaid` code blocks and
+Azure DevOps' `:::mermaid` blocks are both supported:
+
+````markdown
+```mermaid
+flowchart LR
+  Request --> Review --> Release
+```
+````
+
+Rendering uses Mermaid files installed with War Room, not an external diagram service.
+Diagram links and scripts cannot run. Use **Diagram source** to read the original text.
+If a diagram is invalid or too large, its source and an error stay visible while the rest of the page works.
+Wide diagrams scroll inside their own area.
+
+Azure DevOps navigation markers work on their own lines. `[[_TOC_]]` shows links to the current page's headings.
+`[[_TOSP_]]` shows **Child pages**, with links to pages below the current page in the wiki tree.
+Only the first marker of each kind creates a list. Markers in code examples remain unchanged.
+Use **Refresh** in the Pages list to update child-page links after adding or moving pages in the source wiki.
+
+### Work items and pull requests
+
 - Choose **Columns** above the work list to show or hide columns.
   Use **Up** and **Down** to change their order. ID and Title always stay visible.
   **Reset columns** restores the original columns and order.
@@ -158,6 +212,8 @@ Restart the dashboard after editing the file manually.
 
 Data lives in `data/devops-center.db` (SQLite). Nothing leaves your machine
 except read-only calls to your connected Azure DevOps org and GitHub host.
+Reading Room stores its collection and cached wiki content separately in `data/reading-room.db`.
+Its page positions stay in this browser.
 
 ## Work sources
 

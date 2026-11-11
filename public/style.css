@@ -182,7 +182,7 @@ button:disabled { cursor: wait; opacity: .68; }
 .button-primary:hover { border-color: var(--rail-hover); background: var(--rail-hover); }
 #sync-btn { flex: none; white-space: nowrap; }
 
-.page-content { width: min(100%, 1480px); margin: 0 auto; padding: 30px 34px 20px; }
+.page-content { width: 100%; margin: 0 auto; padding: 30px 34px 20px; }
 
 .page-heading {
   display: flex;

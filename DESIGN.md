@@ -203,7 +203,7 @@ Deep navy anchors the shell and table headers; cool slate neutrals support the w
 
 ## Layout
 
-The wide layout uses a fixed 224px navigation rail and a centered content region. At medium desktop widths the rail narrows to 196px. At 960px and below, navigation becomes a horizontal top strip, the dashboard table becomes labeled work-item rows, and filters wrap to available space. At 420px and below, horizontal padding and navigation gaps tighten further.
+The wide layout uses a fixed 224px navigation rail. Briefing, Discovery, Inspection, and Reading Room use the full available workspace width, with consistent side padding instead of a centered width cap. At medium desktop widths the rail narrows to 196px. At 960px and below, navigation becomes a horizontal top strip, the dashboard table becomes labeled work-item rows, and filters wrap to available space. At 420px and below, horizontal padding and navigation gaps tighten further.
 
 The dashboard order is heading and sync action, compact workload counts, then search, filters, and all tracked non-pull-request work. Briefing Room excludes tracked GitHub pull requests and Azure DevOps pull requests; Inspection Room uses the same workspace and list controls for tracked GitHub pull requests and Azure DevOps pull requests created by the user or assigned to them for review. Completed and abandoned pull requests appear under Closed items. Keep its filters, saved views, and column layout separate. Keep the primary filter row focused on work context; type remains visible and state remains visible and searchable in the list, but neither is a filter. Attention-worthy work is reached through the Focus filter rather than a separate board: Daily digest and Needs attention filter the work list in place. The stale workload count sets Focus to Needs attention. Optional breakdowns remain collapsed.
 
@@ -249,7 +249,33 @@ without assigning invented colors or meanings to individual labels.
 
 ## Elevation & Depth
 
-The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel.
+### Reading Room
+
+Reading Room inherits the navigation rail, source labels, controls, and colors of the other rooms.
+Its primary task is reading, not scanning work-item rows. A compact wiki selector and explicit search
+scope sit above a page tree and white document surface. Reading Room uses the full available workspace width.
+Paragraphs, lists, tables, code blocks, images, and diagrams use the full document column.
+Do not add a separate text-width limit. Scroll wide content within its block.
+Keep source metadata and Open original visible above the document title. Use the existing 27px title,
+16px reading text, and 12px supporting labels. Headings, tables, code, images, and links retain their
+document meaning. On screens up to 760px, the page tree becomes a Pages drawer with an Escape-key exit.
+
+Render `[[_TOC_]]` and `[[_TOSP_]]` as inline navigation lists titled Contents and Child pages.
+Nest links by heading level or page hierarchy. Keep code examples unchanged and show a clear empty state
+when no headings or child pages exist. Section links scroll within the current page without fetching it again.
+
+Manage wikis expands inline rather than interrupting the reader with a modal. Source selection precedes
+a project or repository search; wiki choices appear only after a target is selected. Collection rows
+support editable names, Up/Down ordering, and an explicit local-removal confirmation. An empty collection
+explains what can be added. Loading, source failures, empty wikis, removed pages, and stale content remain
+visible with recovery actions. Neutral confirmations use slate; failures use the existing notice colors.
+
+Mermaid diagrams use the same slate, navy, and white palette. Keep each diagram within the full document
+column, with horizontal scrolling for wide drawings. A small caption and expandable Diagram source
+provide context without a new toolbar. Render diagrams as noninteractive images; invalid diagrams
+show their error and expanded source instead of breaking the document.
+
+The system is flat by default. Fine borders and the navy board surface establish hierarchy; shadows are limited to the expanded breakdown panel and Reading Room's floating mobile page drawer and its toggle.
 
 ### Shadow Vocabulary
 - **Breakdown panel** (`0 8px 20px rgb(16 36 58 / 12%)`): Separates the open summary panel from nearby content.
