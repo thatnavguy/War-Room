@@ -9,7 +9,7 @@ async function load() {
   $('#projects').value = cfg.azureDevOps.projects || '';
   $('#ado-auto-sync-minutes').value = cfg.azureDevOps.autoSyncMinutes;
   $('#pat-hint').textContent = cfg.azureDevOps.patSet
-    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
+    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it. Changing the address above requires the token again.'
     : 'No token saved yet.';
   $('#ado-status').textContent = cfg.azureDevOps.configured ? 'Connected' : 'Not connected';
   $('#ado-status').classList.toggle('is-connected', cfg.azureDevOps.configured);
@@ -18,7 +18,7 @@ async function load() {
   $('#gh-host').value = cfg.github.host || 'github.com';
   $('#gh-auto-sync-minutes').value = cfg.github.autoSyncMinutes;
   $('#gh-token-hint').textContent = cfg.github.tokenSet
-    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it.'
+    ? 'A token is saved. Leave blank to keep it, or paste a new one to replace it. Changing the address above requires the token again.'
     : 'No token saved yet.';
   $('#github-status').textContent = cfg.github.configured ? 'Connected' : 'Not connected';
   $('#github-status').classList.toggle('is-connected', cfg.github.configured);

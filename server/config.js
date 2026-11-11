@@ -29,6 +29,18 @@ function normalizeHost(host) {
   return (host || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase();
 }
 
+function normalizeOrgUrl(url) {
+  return (url || '').trim().replace(/\/+$/, '');
+}
+
+function invalid(message) {
+  return Object.assign(new Error(message), { status: 400 });
+}
+
+function isValidPort(port) {
+  return Number.isInteger(port) && port >= 1 && port <= 65535;
+}
+
 const config = {
   orgUrl: '',
   pat: '',
@@ -91,13 +103,14 @@ const config = {
   save({ orgUrl, pat, projects, port, staleDays, lookbackDays, discoveryDays, ghToken, ghRepos, ghHost, adoAutoSyncMinutes, ghAutoSyncMinutes }) {
     const oldPort = this.port;
     const values = {};
-    if (orgUrl !== undefined) values.ADO_ORG_URL = (orgUrl || '').trim().replace(/\/+$/, '');
+    if (port !== undefined && !isValidPort(port)) throw invalid('Port must be a whole number from 1 to 65535.');
+    if (orgUrl !== undefined) values.ADO_ORG_URL = normalizeOrgUrl(orgUrl);
     if (pat !== undefined) values.ADO_PAT = (pat || '').trim() || this.pat;
     if (projects !== undefined) values.PROJECTS = (projects || '').trim();
     if (ghToken !== undefined) values.GH_TOKEN = (ghToken || '').trim() || this.ghToken;
     if (ghRepos !== undefined) values.GH_REPOS = (ghRepos || '').trim();
     if (ghHost !== undefined) values.GH_HOST = normalizeHost(ghHost) || 'github.com';
-    if (port !== undefined) values.PORT = String(port || 4073);
+    if (port !== undefined) values.PORT = String(port);
     if (staleDays !== undefined) values.STALE_DAYS = String(staleDays || 14);
     if (lookbackDays !== undefined) values.LOOKBACK_DAYS = String(lookbackDays || 365);
     if (discoveryDays !== undefined) {
@@ -112,6 +125,10 @@ const config = {
         throw new Error(`${name} must be a whole number from 0 to 1440 minutes (0 turns it off).`);
       }
       values[name] = String(minutes);
+    }
+    // A line break would let a value inject extra settings into .env.
+    for (const [name, value] of Object.entries(values)) {
+      if (/[\r\n\0]/.test(value)) throw invalid(`${name} cannot contain line breaks.`);
     }
 
     const existing = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, 'utf8') : '';
@@ -128,3 +145,6 @@ config.load();
 
 module.exports = config;
 module.exports.mergeEnv = mergeEnv;
+module.exports.normalizeHost = normalizeHost;
+module.exports.normalizeOrgUrl = normalizeOrgUrl;
+module.exports.isValidPort = isValidPort;

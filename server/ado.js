@@ -74,6 +74,7 @@ async function adoFetch(path, options = {}) {
       Accept: 'application/json',
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
+    signal: AbortSignal.timeout(30000),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');

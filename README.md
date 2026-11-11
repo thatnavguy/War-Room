@@ -3,7 +3,7 @@
 A lightweight, local-only web app that tracks Azure DevOps work items and pull
 requests, plus GitHub issues and pull requests. Connect one or both sources.
 
-![War Room developer command center](public/war-room-readme.png)
+![War Room developer command center](assets/war-room-readme.png)
 
 ## Setup
 

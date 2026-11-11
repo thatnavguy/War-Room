@@ -53,6 +53,10 @@ test('project settings override inherited values while unspecified settings keep
     }
     config.save({ ghAutoSyncMinutes: 1440 });
     assert.equal(config.ghAutoSyncMinutes, 1440);
+    const beforeInjection = fs.readFileSync(filename, 'utf8');
+    assert.throws(() => config.save({ projects: 'One\\nADO_ORG_URL=https://attacker.example' }), (err) => err.status === 400 && /line breaks/.test(err.message));
+    assert.throws(() => config.save({ port: 70000 }), /Port/);
+    assert.equal(fs.readFileSync(filename, 'utf8'), beforeInjection);
   `], {
     cwd: __dirname,
     env: {

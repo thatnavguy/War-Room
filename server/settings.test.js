@@ -97,6 +97,33 @@ test('settings API exposes and validates the discovery window without rescheduli
   assert.deepEqual(f.starts, []);
 });
 
+test('settings API requires the token again when the source address changes', (t) => {
+  const f = settingsApi(t);
+  config.ghHost = 'github.com';
+  const ado = f.request('post', { azureDevOps: { orgUrl: 'https://attacker.example/org' } });
+  assert.equal(ado.statusCode, 400);
+  assert.match(ado.body.error, /Personal Access Token again/);
+  const gh = f.request('post', { github: { ghHost: 'attacker.example' } });
+  assert.equal(gh.statusCode, 400);
+  assert.match(gh.body.error, /GitHub token again/);
+  assert.equal(f.saves.length, 0);
+  assert.equal(f.request('post', { azureDevOps: { orgUrl: 'https://dev.azure.com/example/' } }).statusCode, 200);
+  assert.equal(f.request('post', { github: { ghHost: 'https://GitHub.com/' } }).statusCode, 200);
+  assert.equal(f.request('post', { azureDevOps: { orgUrl: 'https://dev.azure.com/other', pat: 'new-pat' } }).statusCode, 200);
+  assert.equal(f.request('post', { github: { ghHost: 'ghe.example', ghToken: 'new-token' } }).statusCode, 200);
+});
+
+test('settings API rejects invalid ports without writing', (t) => {
+  const f = settingsApi(t);
+  for (const port of [0, 65536, 1.5, '4073', null]) {
+    const res = f.request('post', { general: { port } });
+    assert.equal(res.statusCode, 400);
+    assert.match(res.body.error, /Port/);
+  }
+  assert.equal(f.saves.length, 0);
+  assert.equal(f.request('post', { general: { port: 4080 } }).statusCode, 200);
+});
+
 test('settings forms load and save separate intervals without exposing saved tokens', async () => {
   const elements = new Map();
   const posts = [];

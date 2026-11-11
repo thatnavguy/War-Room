@@ -55,6 +55,9 @@ router.post('/config', (req, res) => {
       if (!config.pat && !(section.pat || '').trim()) {
         return res.status(400).json({ error: 'A Personal Access Token is required' });
       }
+      if (!(section.pat || '').trim() && config.normalizeOrgUrl(section.orgUrl).toLowerCase() !== config.orgUrl.toLowerCase()) {
+        return res.status(400).json({ error: 'Enter the Personal Access Token again when changing the organization URL.' });
+      }
       values.orgUrl = section.orgUrl;
       values.pat = section.pat;
       values.projects = section.projects;
@@ -65,6 +68,10 @@ router.post('/config', (req, res) => {
       if (!config.ghToken && !(section.ghToken || '').trim()) {
         return res.status(400).json({ error: 'A GitHub personal access token is required' });
       }
+      if (section.ghHost !== undefined && !(section.ghToken || '').trim() &&
+          (config.normalizeHost(section.ghHost) || 'github.com') !== config.ghHost) {
+        return res.status(400).json({ error: 'Enter the GitHub token again when changing the GitHub host.' });
+      }
       values.ghToken = section.ghToken;
       values.ghRepos = section.ghRepos;
       values.ghHost = section.ghHost;
@@ -74,6 +81,9 @@ router.post('/config', (req, res) => {
       const days = body.general.discoveryDays;
       if (days !== undefined && (!Number.isInteger(days) || days < 1 || days > 3650)) {
         return res.status(400).json({ error: 'Discovery window must be a whole number from 1 to 3650 days.' });
+      }
+      if (body.general.port !== undefined && !config.isValidPort(body.general.port)) {
+        return res.status(400).json({ error: 'Port must be a whole number from 1 to 65535.' });
       }
       values.port = body.general.port;
       values.staleDays = body.general.staleDays;
@@ -88,7 +98,7 @@ router.post('/config', (req, res) => {
     if (values.ghAutoSyncMinutes !== undefined) autoSync.start('github');
     res.json({ saved: true, configured: config.isAnyConfigured(), portChanged: result.portChanged, port: config.port });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status === 400 ? 400 : 500).json({ error: err.message });
   }
 });
 
@@ -198,6 +208,16 @@ router.put('/items/:id/note', (req, res) => {
   res.status(result.status || 200).json(result.error ? result : { ...result, html: renderNote(result.note) });
 });
 
+function parseAttachments(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 router.get('/items/:id', (req, res) => {
   const item = db.getItem(parseInt(req.params.id, 10));
   if (!item) return res.status(404).json({ error: 'Not found' });
@@ -208,7 +228,7 @@ router.get('/items/:id', (req, res) => {
     acceptance_criteria: sanitizeRichText(item.acceptance_criteria, item),
     repro_steps: sanitizeRichText(item.repro_steps, item),
     history: sanitizeRichText(item.history, item),
-    attachments: item.attachments ? JSON.parse(item.attachments) : [],
+    attachments: parseAttachments(item.attachments),
   });
 });
 

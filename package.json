@@ -1,7 +1,7 @@
 {
-  "name": "mission-hall",
+  "name": "war-room",
   "version": "0.2.0",
-  "description": "Local work tracker with provider adapters; Azure DevOps supported today",
+  "description": "Local-first work tracker for Azure DevOps and GitHub",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
